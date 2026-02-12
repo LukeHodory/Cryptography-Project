@@ -46,17 +46,6 @@ def main():
     clientSocket.connect(('localhost', 8089))
     print('client connection successful\n')
 
-    # # Prepare a login message
-    # userName = input("Input the user name: |")
-    # password = input("Input the password: |")
-    # loginRequest = "Login"+"\t"+userName+"\t"+password
-    #
-    # # Encrypt the message
-    # encryptedMsg = encrypt_message(SECRET_KEY, loginRequest.encode())
-    #
-    # # Send the encrypted message to the server
-    # clientSocket.send(encryptedMsg)
-
     ##########################
     # Client Protocol Design #
     ##########################
