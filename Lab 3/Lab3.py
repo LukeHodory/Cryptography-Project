@@ -9,18 +9,20 @@ def GenerateKey():
 
     privateKey = rsa.generate_private_key(
         public_exponent=65537,
-        key_size=keyLength,
-    )
+        key_size=keyLength,)
     publicKey = privateKey.public_key()
 
-    pem = privateKey.private_bytes(
+    privatePem = privateKey.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.NoEncryption()
-    )
-    # pem.splitlines()[0]
+        encryption_algorithm=serialization.NoEncryption())
 
+    publicPem = publicKey.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
+    with open('Private_Key.pem', 'wb') as fw: fw.write(privatePem)
+    with open('Public_Key.pem', 'wb') as fw: fw.write(publicPem)
 
     return privateKey, keyLength
 
