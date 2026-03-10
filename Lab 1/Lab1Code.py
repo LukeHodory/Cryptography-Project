@@ -4,11 +4,10 @@ def AnalyseFrequency():
     singleLetterCount = [[0, q] for q in range(26)]
     singleLetterFrequency = [[0.0, k] for k in range(26)]
 
-    # [[first-letter...][second-letter...[count, first-letter, second-letter]...][...]]
-    # [c, 1st, 2nd] -> stored as entry to 2d array
-    # [x][_][_] first letter of pair
-    # [_][y][_] second letter
-    # also formed to allow sorting
+    # [[first-letter...][second-letter...[count, first-letter,
+    # second-letter]...][...]] [c, 1st, 2nd] -> stored as entry to 2d array [
+    # x][_][_] first letter of pair [_][y][_] second letter also formed to
+    # allow sorting
     letterPairCount = [[[0, g, h] for h in range(26)] for g in range(26)]
     letterPairFrequency = [[[0.0, g, h] for h in range(26)] for g in range(26)]
 
@@ -51,13 +50,15 @@ def AnalyseFrequency():
 
 
 def CreateKeySingleLetter(singleLetterCount):
-    plainTextFrequency = [['E', 12.0, 4], ['T', 9.10, 19], ['A', 8.12, 0], ['O', 7.68, 14],
-                          ['I', 7.31, 8], ['N', 6.95, 13], ['S', 6.28, 18], ['R', 6.02, 17],
-                          ['H', 5.92, 7], ['D', 4.32, 3], ['L', 3.98, 11], ['U', 2.88, 20],
-                          ['C', 2.71, 2], ['M', 2.61, 12], ['F', 2.30, 5], ['Y', 2.11, 24],
-                          ['W', 2.09, 22], ['G', 2.03, 6], ['P', 1.82, 15], ['B', 1.49, 1],
-                          ['V', 1.11, 21], ['K', 0.69, 10], ['X', 0.17, 23], ['Q', 0.11, 16],
-                          ['J', 0.10, 9], ['Z', 0.07, 25]]
+    plainTextFrequency = [['E', 12.0, 4],  ['T', 9.10, 19], ['A', 8.12, 0],
+                          ['O', 7.68, 14], ['I', 7.31, 8],  ['N', 6.95, 13],
+                          ['S', 6.28, 18], ['R', 6.02, 17], ['H', 5.92, 7],
+                          ['D', 4.32, 3],  ['L', 3.98, 11], ['U', 2.88, 20],
+                          ['C', 2.71, 2],  ['M', 2.61, 12], ['F', 2.30, 5],
+                          ['Y', 2.11, 24], ['W', 2.09, 22], ['G', 2.03, 6],
+                          ['P', 1.82, 15], ['B', 1.49, 1],  ['V', 1.11, 21],
+                          ['K', 0.69, 10], ['X', 0.17, 23], ['Q', 0.11, 16],
+                          ['J', 0.10, 9],  ['Z', 0.07, 25]]
 
     singleLetterCount.sort(key=lambda x: x[0])
     singleLetterCount.reverse()
