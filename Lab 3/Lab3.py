@@ -4,14 +4,11 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
-# TODO uncomment keyLength input,
-#  delete explicit keyLength initialization
 def GenerateKey():
 
     validLengths = 2048, 3072, 4096
 
-    # keyLength = int(input("Enter length of key (2048, 3072, or 4096): "))
-    keyLength = 2048
+    keyLength = int(input("Enter length of key (2048, 3072, or 4096): "))
 
     while keyLength not in validLengths:
         keyLength = int(input("Enter valid length of key: "))
@@ -37,7 +34,6 @@ def GenerateKey():
     return keyLength
 
 
-# TODO make sure everything is working here
 def Encrypt(plainText, keyLength):
 
     with open('Public_Key' + str(keyLength) + '.pem', "rb") as key_file:
@@ -51,45 +47,36 @@ def Encrypt(plainText, keyLength):
     return ciphertext
 
 
-# TODO finish Decrypt() method
 def Decrypt(cipherText, keyLength):
-    with open('key' + str(keyLength) + '.pem', "rb") as key_file:
+
+    with open('Private_Key' + str(keyLength) + '.pem', "rb") as key_file:
         private_key = serialization.load_pem_private_key(
-            key_file.read(),
-            password=None,
-        )
+            key_file.read(), password=None,)
 
-    # plaintext = private_key.decrypt(
-    #     ciphertext,
-    #     padding.OAEP(
-    #         mgf=padding.MGF1(algorithm=hashes.SHA256()),
-    #         algorithm=hashes.SHA256(),
-    #         label=None
-    #     )
-    # )
+    decryptedPlainText = private_key.decrypt(cipherText, padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None))
 
-    plainText = ''
-    return plainText
+    return decryptedPlainText
 
-
-# TODO test report: screenshots to demonstrate your code can encrypt a
-#  plaintext using the public key, and then decrypt it using the private key
-#  to resume the same plaintext
 
 def main():
 
     # PLAINTEXT MESSAGE
     message = b"encrypted data"
     cipherText = ''
-    decryptedPlainText = ''
 
     keyLength = 0
     keyFileCreated = False
+
+    # MENU
     while True:
-        print('1) Create Keys \n'
+        print('\n'
+              '1) Create Keys \n'
               '2) Encrypt using public key \n'
               '3) Decrypt using private key \n'
-              '4) Exit \n')
+              '4) Exit')
 
         choice = int(input("Enter option: "))
 
@@ -103,7 +90,7 @@ def main():
 
         elif choice == 3 and keyFileCreated and cipherText != '':
             decryptedPlainText = Decrypt(cipherText, keyLength)
-            print(decryptedPlainText)
+            print(decryptedPlainText.decode())
 
         elif choice == 4: break
         elif not keyFileCreated: print('must first generate key')
