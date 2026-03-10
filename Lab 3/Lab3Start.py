@@ -1,5 +1,6 @@
 def GenerateKey():
     from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives import serialization
 
     validLengths = 2048, 3072, 4096
     keyLength = int(input("Enter length of key (2048, 3072, or 4096): "))
@@ -10,21 +11,45 @@ def GenerateKey():
         public_exponent=65537,
         key_size=keyLength,
     )
+    publicKey = privateKey.public_key()
+
+    pem = privateKey.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption()
+    )
+    # pem.splitlines()[0]
+
+
 
     return privateKey, keyLength
 
 
+# TODO finish Encrypt() method
 def Encrypt(key, keyLength):
+
+    # TODO remove when not needed anymore
+    print(key)
+
     if key == 0:
         print('Cannot encrypt without first generating key')
         return
 
 
+# TODO finish Decrypt() method
 def Decrypt(key, keyLength):
+
+    # TODO remove when not needed anymore
+    print(key)
+
     if key == 0:
         print('Cannot decrypt without first generating key')
         return
 
+
+# TODO test report: screenshots to demonstrate your code can encrypt a
+#  plaintext using the public key, and then decrypt it using the private key
+#  to resume the same plaintext
 
 def main():
     key = 0
