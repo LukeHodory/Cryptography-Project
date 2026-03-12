@@ -59,7 +59,6 @@ def Decrypt(cipherText, keyLength):
         label=None))
 
     return decryptedPlainText
-    pass
 
 
 def main():
