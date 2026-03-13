@@ -34,7 +34,6 @@ def decrypt_message(key: bytes, data: bytes) -> bytes:
     return unpadder.update(padded) + unpadder.finalize()
 
 
-# Start of the client main program
 def main():
     # Create socket to connect with the server side
     # server = "10.0.2.4"
