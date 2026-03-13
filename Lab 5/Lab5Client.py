@@ -1,4 +1,3 @@
-# Sample program for login client
 
 # !/usr/bin/env python3
 from socket import *
@@ -34,14 +33,11 @@ def DecryptMessage(key: bytes, data: bytes) -> bytes:
     return unpadder.update(padded) + unpadder.finalize()
 
 
-def HashPasswords():
-    pass
-
-
 def main():
     ###################
     # Socket Creation #
     ###################
+
     # Create socket to connect with the server side
     # server = "10.0.2.4"
     # serverPort = 34567
@@ -59,45 +55,50 @@ def main():
     # Client Protocol Design #
     ##########################
 
-    # Keep connection open until correct login is entered
-    #   or 5 incorrect attempts are entered
+    ## Keep connection open until correct login is entered
+    ##   or 5 incorrect attempts are entered
     while loginAttempts < 5:
 
-        # Prepare a login message
-        userName = input("Input the user name: |")
-        password = input("Input the password: |")
+        ## TODO uncomment user input when done with server code
+        # userName = input("Input the user name: |")
+        # password = input("Input the password: |")
+        # loginRequest = "Login" + "\t" + userName + "\t" + password
+
+        ## Prepare a login message
+        userName = "painters"
+        password = "vp2aNk"
         loginRequest = "Login" + "\t" + userName + "\t" + password
 
-        # Encrypt the message
+        ## Encrypt the message
         encryptedMsg = EncryptMessage(SECRET_KEY, loginRequest.encode())
 
-        # Send the encrypted message to the server
+        ## Send the encrypted message to the server
         clientSocket.send(encryptedMsg)
 
-        # Receive the response from the server
+        ## Receive the response from the server
         serverResponse = clientSocket.recv(1024)
 
-        # Decrypt the received response Message
-        # Decode the message to string (using decode("ascii") )
+        ## Decrypt the received response Message
+        ## Decode the message to string (using decode("ascii") )
         decryptedServerResponse = DecryptMessage(
             SECRET_KEY,
             serverResponse).decode("ascii")
 
-        # Parse the response message
-        # If it is response to the login request, and it indicates success,
-        #   print the message that login succeeded
+        ## Parse the response message
+        ## If it is response to the login request, and it indicates success,
+        ##   print the message that login succeeded
         if decryptedServerResponse == successMessage:
             print('login successful')
             break
 
-        # else, print that the login attempt failed.
+        ## else, print that the login attempt failed.
         print(decryptedServerResponse)
         loginAttempts += 1
 
-    # print out message too many logins without success
+    ## print out message too many logins without success
     if loginAttempts >= 5: print('too many login attempts')
 
-    # Close the connection socket when the session is done
+    ## Close the connection socket when the session is done
     clientSocket.close()
 
 
