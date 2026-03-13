@@ -11,11 +11,10 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
 
 SECRET_KEY = b"0123456789abcdef" # 16 bytes = AES-128 (demo key)
-
 BLOCK_SIZE_BITS = 128
 
 
-def encrypt_message(key: bytes, plaintext: bytes) -> bytes:
+def encryptMessage(key: bytes, plaintext: bytes) -> bytes:
     iv = os.urandom(16)
     padder = padding.PKCS7(BLOCK_SIZE_BITS).padder()
     padded = padder.update(plaintext) + padder.finalize()
@@ -26,7 +25,7 @@ def encrypt_message(key: bytes, plaintext: bytes) -> bytes:
     return iv + ciphertext
 
 
-def decrypt_message(key: bytes, data: bytes) -> bytes:
+def decryptMessage(key: bytes, data: bytes) -> bytes:
     iv = data[:16]
     ciphertext = data[16:]
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv),
@@ -38,6 +37,11 @@ def decrypt_message(key: bytes, data: bytes) -> bytes:
 
 
 def main():
+
+    ###################
+    # Socket Creation #
+    ###################
+
     # serverPort = 34567
     # create a welcome TCP socket
     serverSocket = socket(AF_INET, SOCK_STREAM)
@@ -50,28 +54,27 @@ def main():
     print("The server is ready to receive requests")
     connectSocket, addr = serverSocket.accept()
 
-    ##########################
-    # Server Protocol Design #
-    ##########################
-
     replyMessage = ''
     badUserName = 'user name does not exist\n'
     badPassword = 'incorrect password\n'
     successMessage = 'successful'
 
+    ##########################
+    # Server Protocol Design #
+    ##########################
     while 1:
-        # request = connectSocket.recv(1024).decode("ascii")
         encryptedRequest = connectSocket.recv(1024)
+        # request = connectSocket.recv(1024).decode("ascii")
         # print('encrypted message: ', request)
         # print('encrypted message: ', encryptedRequest)
 
-        request = decrypt_message(SECRET_KEY, encryptedRequest).decode("ascii")
+        request = decryptMessage(SECRET_KEY, encryptedRequest).decode("ascii")
 
         # Parse the request message to obtain username and password
         requestCommand = request.split('\t')[0]
 
-        # setting up for future request types
-        # line is also here to make PyCharm shut up about warnings
+        # Setting up for future request types
+        # Line is also here to make PyCharm shut up about warnings
         if requestCommand == "Disconnect": break
 
         # Handling of login request
@@ -92,13 +95,13 @@ def main():
         if (userName == correctLogin[0] and
             password == correctLogin[1]): replyMessage = successMessage
 
-        # send message with information about incorrect input
+        # Send message with information about incorrect input
         if password != correctLogin[1]: replyMessage = badPassword
         if userName != correctLogin[0]: replyMessage = badUserName
 
         # Construct the login response message and encrypt it before
         #   sending back to the client
-        encryptedReply = encrypt_message(SECRET_KEY, replyMessage.encode())
+        encryptedReply = encryptMessage(SECRET_KEY, replyMessage.encode())
         connectSocket.send(encryptedReply)
 
     connectSocket.close()

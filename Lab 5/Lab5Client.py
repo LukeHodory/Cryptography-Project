@@ -12,7 +12,7 @@ SECRET_KEY = b"0123456789abcdef" # 16 bytes = AES-128 (demo key)
 BLOCK_SIZE_BITS = 128
 
 
-def encrypt_message(key: bytes, plaintext: bytes) -> bytes:
+def EncryptMessage(key: bytes, plaintext: bytes) -> bytes:
     iv = os.urandom(16)
     padder = padding.PKCS7(BLOCK_SIZE_BITS).padder()
     padded = padder.update(plaintext) + padder.finalize()
@@ -23,7 +23,7 @@ def encrypt_message(key: bytes, plaintext: bytes) -> bytes:
     return iv + ciphertext
 
 
-def decrypt_message(key: bytes, data: bytes) -> bytes:
+def DecryptMessage(key: bytes, data: bytes) -> bytes:
     iv = data[:16]
     ciphertext = data[16:]
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv),
@@ -34,8 +34,14 @@ def decrypt_message(key: bytes, data: bytes) -> bytes:
     return unpadder.update(padded) + unpadder.finalize()
 
 
-# Start of the client main program
+def HashPasswords():
+    pass
+
+
 def main():
+    ###################
+    # Socket Creation #
+    ###################
     # Create socket to connect with the server side
     # server = "10.0.2.4"
     # serverPort = 34567
@@ -46,12 +52,12 @@ def main():
     clientSocket.connect(('localhost', 8089))
     print('client connection successful\n')
 
+    loginAttempts = 0
+    successMessage = 'successful'
+
     ##########################
     # Client Protocol Design #
     ##########################
-
-    loginAttempts = 0
-    successMessage = 'successful'
 
     # Keep connection open until correct login is entered
     #   or 5 incorrect attempts are entered
@@ -63,7 +69,7 @@ def main():
         loginRequest = "Login" + "\t" + userName + "\t" + password
 
         # Encrypt the message
-        encryptedMsg = encrypt_message(SECRET_KEY, loginRequest.encode())
+        encryptedMsg = EncryptMessage(SECRET_KEY, loginRequest.encode())
 
         # Send the encrypted message to the server
         clientSocket.send(encryptedMsg)
@@ -73,8 +79,9 @@ def main():
 
         # Decrypt the received response Message
         # Decode the message to string (using decode("ascii") )
-        decryptedServerResponse = decrypt_message(SECRET_KEY,
-                                                  serverResponse).decode("ascii")
+        decryptedServerResponse = DecryptMessage(
+            SECRET_KEY,
+            serverResponse).decode("ascii")
 
         # Parse the response message
         # If it is response to the login request, and it indicates success,
