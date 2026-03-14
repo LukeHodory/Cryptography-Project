@@ -35,10 +35,6 @@ def decryptMessage(key: bytes, data: bytes) -> bytes:
 
 
 def checkCreds(username, password):
-    
-    ## Read in hashed credentials from file
-    with open('HashedCredentials.txt', 'r') as credentialsFile:
-        credentials = credentialsFile.read().split()
 
     ## Create hash digest
     myDigest = hashes.Hash(hashes.SHA256())
