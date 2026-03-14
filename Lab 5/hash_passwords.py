@@ -15,6 +15,7 @@ def HashPasswords():
             hashedFile.write(loginInfo[i][0] + ' ')
             hashedFile.write(str(newDigest.finalize()) + '\n')
 
+
 def TestHashArray():
     with open('hashedCredentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split('\n')
@@ -23,8 +24,6 @@ def TestHashArray():
     for i in range(50):
         loginInfo[i][0] = loginFile[i].split(' ', 1)[0]
         loginInfo[i][1] = loginFile[i].split(' ', 1)[1]
-        print(loginInfo[i][0])
-        print(loginInfo[i][1] + '\n')
 
 
 if __name__ == "__main__":
