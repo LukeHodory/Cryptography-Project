@@ -1,7 +1,7 @@
-import sys
+import time
 from cryptography.hazmat.primitives import hashes
 
-def HashPasswords():
+def HashCredentials():
     with open('credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
@@ -18,6 +18,51 @@ def HashPasswords():
             hashedFile.write(str(newDigest.finalize()) + '\n')
 
 
+def BigHashPasswords():
+    start = time.time()
+
+    with open('top-1million-password-list.txt', 'r') as credentialsFile:
+        topPasswords = credentialsFile.read().split()
+
+    digest = hashes.Hash(hashes.SHA256())
+    with open('BigHashedPasswords.txt', 'w') as hashedFile:
+        for element in topPasswords:
+            newDigest = digest.copy()
+            newDigest.update(bytes(element, 'utf-8'))
+            hashedFile.write(str(newDigest.finalize()) + '\n')
+
+    end = time.time()
+    length = end - start
+    print(length, "seconds")
+
+
+def TestBigPasswords():
+    start = time.time()
+
+    with open('BigHashedPasswords.txt', 'r') as topPasswordsFile:
+        topPasswords = topPasswordsFile.read().split()
+
+    with open('HashedCredentials.txt', 'r') as credentialsFile:
+        credentials = credentialsFile.read().split('\n')
+
+    loginInfo = [['' for _ in range(2)] for _ in range(50)]
+    for i in range(50):
+        loginInfo[i][0] = credentials[i].split(' ', 1)[0]
+        loginInfo[i][1] = credentials[i].split(' ', 1)[1]
+
+    foundPasswords = []
+    for testPassword in topPasswords:
+        for myPassword in loginInfo:
+            if testPassword == myPassword[1]:
+                foundPasswords.append(myPassword[0])
+
+    print(foundPasswords)
+
+    end = time.time()
+    length = end - start
+    print(length, "seconds")
+
+
 def TestHashArray():
     with open('HashedCredentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split('\n')
@@ -29,7 +74,9 @@ def TestHashArray():
 
 
 if __name__ == "__main__":
-    HashPasswords()
-    TestHashArray()
+    # HashPasswords()
+    # TestHashArray()
+    # BigHashPasswords()
+    TestBigPasswords()
 
 
