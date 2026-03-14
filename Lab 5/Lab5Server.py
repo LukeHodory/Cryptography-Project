@@ -57,113 +57,27 @@ def checkCreds(username, password):
         loginInfo[i][0] = credentials[i].split(' ', 1)[0]
         loginInfo[i][1] = credentials[i].split(' ', 1)[1]
 
-    for i in range(50):
-        print(i)
-        print(loginInfo[i][0])
-        print(loginInfo[i][1] + '\n')
-
     ## Check the credential files to see whether the username
     ##      exists and password is correct
-    goodPassword = False
     goodUsername = False
     usernameIndex = 0
     for i in range(50):
-        if username == loginInfo[i][0]: goodUsername = True
+        if username == loginInfo[i][0]:
+            goodUsername = True
+            break
         usernameIndex += 1
-    if loginInfo[usernameIndex][1] == hashedPasswordAttempt:
-        goodPassword = True
 
-    print('username: ' + username + '\n')
-    print(hashedPasswordAttempt + '\n')
-    print(loginInfo[usernameIndex][1])
+    goodPassword = False
+    if goodUsername:
+        print('username found')
+        print(loginInfo[usernameIndex][1])
+        print(hashedPasswordAttempt + '\n')
+        goodPassword = (loginInfo[usernameIndex][1] == hashedPasswordAttempt)
 
     return goodUsername, goodPassword
 
 
 def main():
-    replyMessage = 'login successful'
-    badUsername = 'user name does not exist\n'
-    badPassword = 'incorrect password\n'
-
-    ###################
-    # Socket Creation #
-    ###################
-
-    serverSocket = socket(AF_INET, SOCK_STREAM)
-    serverSocket.bind(('localhost', 8089))
-    serverSocket.listen(1)
-    print("The server is ready to receive requests")
-    connectSocket, addr = serverSocket.accept()
-
-    ##########################
-    # Server Protocol Design #
-    ##########################
-
-    ## Read in hashed credentials from file
-    with open('hashedCredentials.txt', 'r') as credentialsFile:
-        credentials = credentialsFile.read().split('\n')
-
-    ## convert stored credentials into 2D array
-    loginInfo = [['' for x in range(2)] for y in range(50)]
-    for i in range(50):
-        loginInfo[i][0] = credentials[i].split(' ')[0]
-        loginInfo[i][1] = credentials[i].split(' ')[1]
-
-    print(loginInfo)
-
-    goodPassword = False
-    goodUsername = False
-
-    while 1:
-
-        encryptedRequest = connectSocket.recv(1024)
-
-        request = decryptMessage(SECRET_KEY, encryptedRequest).decode("ascii")
-
-        ## Parse the request message to obtain username and password
-        requestCommand = request.split('\t')[0]
-
-        ## Setting up for future request types
-        ## Line is also here to make PyCharm shut up about warnings
-        if requestCommand == "Disconnect": break
-
-        ## Handling of login request information
-        username = ''
-        password = ''
-        if requestCommand == "Login":
-            username = request.split('\t')[1]
-            password = request.split('\t')[2]
-
-        myDigest = hashes.Hash(hashes.SHA256())
-        myDigest.update(bytes(password, 'utf-8'))
-        hashedPasswordAttempt = str(myDigest.finalize())
-
-        ## Check the credential files to see whether the username
-        ##      exists and password is correct
-        usernameIndex = 0
-        for i in range(50):
-            if username == loginInfo[i][0]:
-                goodUsername = True
-                break
-            usernameIndex = usernameIndex + 1
-
-        if loginInfo[usernameIndex][1] == hashedPasswordAttempt:
-            goodPassword = True
-
-        ## construct message with information about incorrect input
-        if not goodPassword: replyMessage = badPassword
-        if not goodUsername: replyMessage = badUsername
-
-        ## Construct the login response message and encrypt it before
-        ##      sending back to the client
-        encryptedReply = encryptMessage(SECRET_KEY, replyMessage.encode())
-        connectSocket.send(encryptedReply)
-        if goodPassword: break
-
-    connectSocket.close()
-
-
-def Test():
     replyMessage = 'login successful'
     badUsername = 'user name does not exist\n'
     badPassword = 'incorrect password\n'
@@ -219,5 +133,4 @@ def Test():
 
 
 if __name__ == "__main__":
-    # main()
-    Test()
+    main()

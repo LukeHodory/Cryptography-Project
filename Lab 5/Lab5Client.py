@@ -49,7 +49,7 @@ def main():
     print('client connection successful\n')
 
     loginAttempts = 0
-    successMessage = 'successful'
+    successMessage = 'login successful'
 
     ##########################
     # Client Protocol Design #
@@ -97,6 +97,11 @@ def main():
 
     ## print out message too many logins without success
     if loginAttempts >= 5: print('too many login attempts')
+
+    ## Send disconnect signal
+    loginRequest = "Disconnect" + "\t" + " " + "\t" + " "
+    encryptedMsg = EncryptMessage(SECRET_KEY, loginRequest.encode())
+    clientSocket.send(encryptedMsg)
 
     ## Close the connection socket when the session is done
     clientSocket.close()
