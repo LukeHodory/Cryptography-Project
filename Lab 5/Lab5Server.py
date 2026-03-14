@@ -37,28 +37,25 @@ def decryptMessage(key: bytes, data: bytes) -> bytes:
 def checkCreds(username, password):
     
     ## Read in hashed credentials from file
-    with open('hashedCredentials.txt', 'r') as credentialsFile:
+    with open('HashedCredentials.txt', 'r') as credentialsFile:
         credentials = credentialsFile.read().split()
 
-    loginInfo = [['' for _ in range(2)] for _ in range(50)]
-    for i in range(100): loginInfo[int(i / 2)][i % 2] = credentials[i]
-
+    ## Create hash digest
     myDigest = hashes.Hash(hashes.SHA256())
     myDigest.update(bytes(password, 'utf-8'))
     hashedPasswordAttempt = str(myDigest.finalize())
 
     ## Read in hashed credentials from file
-    with open('hashedCredentials.txt', 'r') as credentialsFile:
+    with open('HashedCredentials.txt', 'r') as credentialsFile:
         credentials = credentialsFile.read().split('\n')
 
-    ## convert stored credentials into 2D array
+    ## Put usernames and passwords into 2d array
     loginInfo = [['' for _ in range(2)] for _ in range(50)]
     for i in range(50):
         loginInfo[i][0] = credentials[i].split(' ', 1)[0]
         loginInfo[i][1] = credentials[i].split(' ', 1)[1]
 
-    ## Check the credential files to see whether the username
-    ##      exists and password is correct
+    ## Find index of username, if it exists
     goodUsername = False
     usernameIndex = 0
     for i in range(50):
@@ -67,6 +64,7 @@ def checkCreds(username, password):
             break
         usernameIndex += 1
 
+    ## Check password associated with username
     goodPassword = False
     if goodUsername:
         goodPassword = (loginInfo[usernameIndex][1] == hashedPasswordAttempt)
@@ -95,19 +93,17 @@ def main():
 
     while 1:
 
+        ## Receive request from client
         encryptedRequest = connectSocket.recv(1024)
-
         request = decryptMessage(SECRET_KEY, encryptedRequest).decode("ascii")
 
         ## Parse the request message to obtain username and password
         requestCommand = request.split('\t')[0]
 
-        ## Setting up for future request types
-        if requestCommand == "Disconnect": break
-
         ## Handling of login request information
         username = ''
         password = ''
+        if requestCommand == "Disconnect": break
         if requestCommand == "Login":
             username = request.split('\t')[1]
             password = request.split('\t')[2]
@@ -116,7 +112,7 @@ def main():
         ##      exists and password is correct
         goodUsername, goodPassword = checkCreds(username, password)
 
-        ## construct message with information about incorrect input
+        ## Construct message with information about incorrect input
         if not goodPassword: replyMessage = badPassword
         if not goodUsername: replyMessage = badUsername
 

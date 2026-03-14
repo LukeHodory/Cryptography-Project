@@ -1,14 +1,16 @@
+import sys
+from cryptography.hazmat.primitives import hashes
 
 def HashPasswords():
     with open('credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
+
     loginInfo = [['' for x in range(2)] for y in range(50)]
     for i in range(100):
         loginInfo[int(i / 2)][i % 2] = loginFile[i]
 
-    from cryptography.hazmat.primitives import hashes
     digest = hashes.Hash(hashes.SHA256())
-    with open('hashedCredentials.txt', 'w') as hashedFile:
+    with open('HashedCredentials.txt', 'w') as hashedFile:
         for i in range(50):
             newDigest = digest.copy()
             newDigest.update(bytes(loginInfo[i][1], 'utf-8'))
@@ -17,7 +19,7 @@ def HashPasswords():
 
 
 def TestHashArray():
-    with open('hashedCredentials.txt', 'r') as credentialsFile:
+    with open('HashedCredentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split('\n')
 
     loginInfo = [['' for x in range(2)] for y in range(50)]
@@ -27,7 +29,7 @@ def TestHashArray():
 
 
 if __name__ == "__main__":
-    # HashPasswords()
+    HashPasswords()
     TestHashArray()
 
 
