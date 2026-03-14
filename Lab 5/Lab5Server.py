@@ -69,9 +69,6 @@ def checkCreds(username, password):
 
     goodPassword = False
     if goodUsername:
-        print('username found')
-        print(loginInfo[usernameIndex][1])
-        print(hashedPasswordAttempt + '\n')
         goodPassword = (loginInfo[usernameIndex][1] == hashedPasswordAttempt)
 
     return goodUsername, goodPassword
