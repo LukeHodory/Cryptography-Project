@@ -21,9 +21,10 @@ def TestHashArray():
 
     loginInfo = [['' for x in range(2)] for y in range(50)]
     for i in range(50):
-        loginInfo[i][0] = loginFile[i].split(' ')[0]
-        loginInfo[i][1] = loginFile[i].split(' ')[1]
-    print(loginInfo)
+        loginInfo[i][0] = loginFile[i].split(' ', 1)[0]
+        loginInfo[i][1] = loginFile[i].split(' ', 1)[1]
+        print(loginInfo[i][0])
+        print(loginInfo[i][1] + '\n')
 
 
 if __name__ == "__main__":
