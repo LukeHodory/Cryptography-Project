@@ -1,5 +1,6 @@
 import time
 from cryptography.hazmat.primitives import hashes
+import bcrypt
 
 def HashCredentials():
     with open('credentials.txt', 'r') as credentialsFile:
@@ -73,10 +74,21 @@ def TestHashArray():
         loginInfo[i][1] = loginFile[i].split(' ', 1)[1]
 
 
+def TestBcrypt():
+    password = b"super secret password"
+    # Hash a password for the first time, with a randomly-generated salt
+    hashed = bcrypt.hashpw(password, bcrypt.gensalt())
+    # Check that an unhashed password matches one that has previously been
+    # hashed
+    if bcrypt.checkpw(password, hashed): print("It Matches!")
+    else: print("It Does not Match :(")
+
+
 if __name__ == "__main__":
     # HashPasswords()
     # TestHashArray()
     # BigHashPasswords()
-    TestBigPasswords()
+    # TestBigPasswords()
+    TestBcrypt()
 
 
