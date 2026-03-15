@@ -1,6 +1,9 @@
 import time
+import os
 from cryptography.hazmat.primitives import hashes
 import bcrypt
+from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
+
 
 def HashCredentials():
     #######################################
@@ -10,7 +13,7 @@ def HashCredentials():
     with open('Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
-    loginInfo = [['' for x in range(2)] for y in range(50)]
+    loginInfo = [['' for _ in range(2)] for _ in range(50)]
     for i in range(100):
         loginInfo[int(i / 2)][i % 2] = loginFile[i]
 
@@ -72,6 +75,8 @@ def CheckBigHashedPasswords():
     # against top passwords    #
     ############################
 
+    print('CHECKING PASSWORDS: SHA256')
+
     start = time.time()
 
     with open('BigHashedPasswords.txt', 'r') as topPasswordsFile:
@@ -96,6 +101,8 @@ def CheckBigHashedPasswords():
     end = time.time()
     length = end - start
     print(length, "seconds")
+    for _ in range(50): print('-', end = '')
+    print('\n\n')
 
 
 def CheckBigSaltedPasswords():
@@ -103,6 +110,8 @@ def CheckBigSaltedPasswords():
     # Check SALTED credentials #
     # against top passwords    #
     ############################
+
+    print('CHECKING PASSWORDS: SALTED SHA256')
 
     start = time.time()
 
@@ -143,7 +152,154 @@ def CheckBigSaltedPasswords():
 
     end = time.time()
     length = end - start
-    print(length, "seconds")
+    print(int(length), "seconds")
+    for _ in range(50): print('-', end = '')
+    print('\n\n')
+
+
+def CheckBcryptPasswords():
+    ############################
+    # Check credentials hashed #
+    # with bcrypt algorithm    #
+    ############################
+
+    start = time.time()
+
+    with open('Credentials.txt', 'r') as credentialsFile:
+        loginFile = credentialsFile.read().split()
+
+    ## Put top passwords into an array
+    with open('top-1million-password-list.txt', 'r') as passwordsFile:
+        topPasswords = passwordsFile.read().split()
+
+    loginInfo = [['' for _ in range(2)] for _ in range(50)]
+    for i in range(100):
+        loginInfo[int(i / 2)][i % 2] = loginFile[i]
+
+    foundPasswords = []
+    foundUsernames = []
+    for myInfo in loginInfo:
+        myPassword = myInfo[1]
+        myPasswordHashed = bcrypt.hashpw(bytes(myPassword, 'utf-8'),
+                                         bcrypt.gensalt())
+        for testPassword in topPasswords:
+            if bcrypt.checkpw(bytes(testPassword, 'utf-8'),
+                              myPasswordHashed):
+                foundPasswords.append(myPassword)
+                foundUsernames.append(myInfo[0])
+
+    print('passwords found: ', len(foundPasswords))
+    print(foundPasswords)
+    print(foundUsernames)
+
+    end = time.time()
+    length = end - start
+    print(int(length), "seconds")
+
+
+def TestBcrypt():
+    print('CHECKING PASSWORDS: BCRYPT')
+
+    start = time.time()
+
+    with open('TestCreds.txt', 'r') as credentialsFile:
+        loginFile = credentialsFile.read().split()
+
+    ## Put top passwords into an array
+    with open('TestPasswords.txt', 'r') as passwordsFile:
+        topPasswords = passwordsFile.read().split()
+
+    loginInfo = [['' for _ in range(2)] for _ in range(2)]
+    for i in range(4):
+        loginInfo[int(i / 2)][i % 2] = loginFile[i]
+
+    foundPasswords = []
+    foundUsernames = []
+    for myInfo in loginInfo:
+        myPassword = myInfo[1]
+        myPasswordHashed = bcrypt.hashpw(bytes(myPassword, 'utf-8'),
+                                         bcrypt.gensalt())
+
+        for testPassword in topPasswords:
+            if bcrypt.checkpw(bytes(testPassword, 'utf-8'),
+                              myPasswordHashed):
+                foundPasswords.append(myPassword)
+                foundUsernames.append(myInfo[0])
+
+    print('passwords found: ', len(foundPasswords))
+    print(foundPasswords)
+    print(foundUsernames)
+
+    end = time.time()
+    length = end - start
+    print(int(length), "seconds when checking only 2 passwords against only 50")
+    fullLength = length * 25.0 * 1000000 / 50
+    print(int(fullLength), "seconds when checking all passwords\n")
+    for _ in range(50): print('-', end = '')
+    print('\n\n')
+
+
+def TestArgone2():
+    print('CHECKING PASSWORDS: ARGONE2')
+
+    start = time.time()
+
+    with open('TestCreds.txt', 'r') as credentialsFile:
+        loginFile = credentialsFile.read().split()
+
+    ## Put top passwords into an array
+    with open('TestPasswords.txt', 'r') as passwordsFile:
+        topPasswords = passwordsFile.read().split()
+
+    loginInfo = [['' for _ in range(2)] for _ in range(2)]
+    for i in range(4):
+        loginInfo[int(i / 2)][i % 2] = loginFile[i]
+
+    foundPasswords = []
+    foundUsernames = []
+    for myInfo in loginInfo:
+        myPassword = myInfo[1]
+
+        salt = os.urandom(16)
+        kdf = Argon2id(
+            salt=salt,
+            length=32,
+            iterations=1,
+            lanes=4,
+            memory_cost=64 * 1024,
+            ad=None,
+            secret=None,
+        )
+        myPasswordHashed = kdf.derive(bytes(myPassword, 'utf-8'))
+
+        for testPassword in topPasswords:
+
+            kdf = Argon2id(
+                salt=salt,
+                length=32,
+                iterations=1,
+                lanes=4,
+                memory_cost=64 * 1024,
+                ad=None,
+                secret=None,
+            )
+            testPasswordHashed = kdf.derive(bytes(testPassword, 'utf-8'))
+
+            if testPasswordHashed == myPasswordHashed:
+                foundPasswords.append(myPassword)
+                foundUsernames.append(myInfo[0])
+
+    print('passwords found: ', len(foundPasswords))
+    print(foundPasswords)
+    print(foundUsernames)
+
+    end = time.time()
+    length = end - start
+    print(int(length), "seconds when checking 2 passwords against 50")
+    fullLength = length * 25.0 * 1000000 / 50
+    print(int(fullLength), "seconds when checking all passwords\n")
+    for _ in range(50): print('-', end = '')
+    print('\n\n')
 
 
 def TestHashArray():
@@ -155,30 +311,20 @@ def TestHashArray():
     with open('HashedCredentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split('\n')
 
-    loginInfo = [['' for x in range(2)] for y in range(50)]
+    loginInfo = [['' for _ in range(2)] for _ in range(50)]
     for i in range(50):
         loginInfo[i][0] = loginFile[i].split(' ', 1)[0]
         loginInfo[i][1] = loginFile[i].split(' ', 1)[1]
 
 
-def TestBcrypt():
-    password = b"super secret password"
-    # Hash a password for the first time, with a randomly-generated salt
-    hashed = bcrypt.hashpw(password, bcrypt.gensalt())
-    # Check that an unhashed password matches one that has previously been
-    # hashed
-    if bcrypt.checkpw(password, hashed): print("It Matches!")
-    else: print("It Does not Match :(")
-
-
 if __name__ == "__main__":
     # HashPasswords()
-    # TestHashArray()
-    # BigHashPasswords()
-    # CheckBigHashedPasswords()
-    # TestBcrypt()
     # SaltCredentials()
+    # BigHashPasswords()
+    CheckBigHashedPasswords()
     CheckBigSaltedPasswords()
-
-
+    # CheckBcryptPasswords()
+    TestBcrypt()
+    TestArgone2()
+    # TestHashArray()
 
