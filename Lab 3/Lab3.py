@@ -36,8 +36,13 @@ def GenerateKey():
 
 def Encrypt(plainText, keyLength):
 
-    with open('Public_Key' + str(keyLength) + '.pem', "rb") as key_file:
+    fileName = 'public3072.pem'
+
+    with open(fileName, "rb") as key_file:
         publicKey = serialization.load_pem_public_key(key_file.read())
+
+    # with open('Public_Key' + str(keyLength) + '.pem', "rb") as key_file:
+    #     publicKey = serialization.load_pem_public_key(key_file.read())
 
     ciphertext = publicKey.encrypt(plainText, padding.OAEP(
         mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -64,7 +69,7 @@ def Decrypt(cipherText, keyLength):
 def main():
 
     # PLAINTEXT MESSAGE
-    message = b"encrypted data"
+    message = b"science compels us to explode the sun"
     cipherText = ''
 
     keyLength = 0
@@ -84,12 +89,17 @@ def main():
             keyLength = GenerateKey()
             keyFileCreated = True
 
-        elif choice == 2 and keyFileCreated:
+        elif choice == 2:
+        # elif choice == 2 and keyFileCreated:
             cipherText = Encrypt(message, keyLength)
             print(cipherText)
+            with (open('EncryptedFile.txt', 'w')
+                 as fw):
+                fw.write(str(cipherText))
 
         elif choice == 3 and keyFileCreated and cipherText != '':
             decryptedPlainText = Decrypt(cipherText, keyLength)
+
             print(decryptedPlainText.decode())
 
         elif choice == 4: break
