@@ -1,0 +1,47 @@
+This assignment is built on top of Labs 2,3, and 5. The main task is to
+implement the secure session key exchange protocol between the client and the
+server as in Fig. 15.5 (page 37 in Module 6 slides) that achieve mutual
+authentication and integrated replay attack defense. Note that you should add
+some additional fields like the method name, response status etc. to handle
+more realistic situations such as failure to decrypt. Please:
+
+(1) Describe your version of protocol as comments in the header part of your
+code. You should list the detailed fields in the messages sent out, and
+describe the actions of the receiver on how to use the received information for
+authentication and replay attack defense.
+
+(2) Implement your protocol in the code. Note that the client side should
+construct a 128-bit pr 256-bit random session key depending on you are using
+AES-128 or AES-256 (should not be fixed like in Lab 2 anymore) and send it to
+the server side. This session key  should be used by the client and server
+program for later login operations.
+
+(3) The client and server side should save the public keys of the other sides.
+But the client's private key should be only saved at the client side, and the
+server's private key should be only saved at the server's side. If you
+implement both client and server on the same machine, you should have separate
+folders to store the keys used by the client and server. In this lab, we are
+assuming that the communication parties are using RSA with 3072-bit key and
+OAEP padding.
+
+(4) Make sure you are using bcrypt instead of SHA256 when verifying one's
+password at the server side.
+
+
+
+Note: A practical security protocol should start with secure exchange of
+public keys in the format of certificate ex change, which we will save for the
+final project.
+
+
+
+What to submit
+
+1. Your updated client and server prog rams (should be in Python) that supports
+the security protocol for publ ic key based session key exchange, as well as
+the slow hashing algorithm that supports more secure password management on the
+server side.
+
+2. A test report that includes screenshot of successful key exchange and login
+printouts (you should add some print out sentences in your code to indicate
+success or failure of each communication).
