@@ -36,13 +36,8 @@ def GenerateKey():
 
 def Encrypt(plainText, keyLength):
 
-    fileName = 'public3072.pem'
-
-    with open(fileName, "rb") as key_file:
+    with open('Public_Key' + str(keyLength) + '.pem', "rb") as key_file:
         publicKey = serialization.load_pem_public_key(key_file.read())
-
-    # with open('Public_Key' + str(keyLength) + '.pem', "rb") as key_file:
-    #     publicKey = serialization.load_pem_public_key(key_file.read())
 
     ciphertext = publicKey.encrypt(plainText, padding.OAEP(
         mgf=padding.MGF1(algorithm=hashes.SHA256()),

@@ -28,5 +28,6 @@ def RSATest():
     plain = (cipher ^ int(d)) % n
     print('deciphered text:', plain)
 
+
 if __name__ == "__main__":
     RSATest()

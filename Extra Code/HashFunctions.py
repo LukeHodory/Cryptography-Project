@@ -205,7 +205,7 @@ def TestBcrypt():
     with open('TestCreds.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
-    ## Put top passwords into an array
+    # Put top passwords into an array
     with open('TestPasswords.txt', 'r') as passwordsFile:
         topPasswords = passwordsFile.read().split()
 

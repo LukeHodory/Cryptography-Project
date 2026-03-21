@@ -10,7 +10,7 @@ def HashCredentials():
     # Create file with hashed credentials #
     #######################################
 
-    with open('Credentials.txt', 'r') as credentialsFile:
+    with open('../Extra Code/Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     loginInfo = [['' for _ in range(2)] for _ in range(50)]
@@ -31,7 +31,7 @@ def SaltCredentials():
     # Create file with salted credentials #
     #######################################
 
-    with open('CredsAndSalts.txt', 'r') as credentialsFile:
+    with open('../Extra Code/CredsAndSalts.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     loginInfo = [['' for _ in range(3)] for _ in range(50)]
@@ -54,7 +54,7 @@ def BigHashPasswords():
 
     start = time.time()
 
-    with open('top-1million-password-list.txt', 'r') as passwordsFile:
+    with open('../Extra Code/top-1million-password-list.txt', 'r') as passwordsFile:
         topPasswords = passwordsFile.read().split()
 
     digest = hashes.Hash(hashes.SHA256())
@@ -119,12 +119,12 @@ def CheckBigSaltedPasswords():
     ## This is just so I don't have to clutter the project with
     ##      unnecessary files
     salts = [''] * 50
-    with open('CredsAndSalts.txt', 'r') as credentialsFile:
+    with open('../Extra Code/CredsAndSalts.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
     for i in range(2, 52): salts[i - 2] = loginFile[(i * 3) - 4]
 
     ## Put top passwords into an array
-    with open('top-1million-password-list.txt', 'r') as passwordsFile:
+    with open('../Extra Code/top-1million-password-list.txt', 'r') as passwordsFile:
         topPasswords = passwordsFile.read().split()
 
     # Credentials with salted passwords into an array
@@ -165,11 +165,11 @@ def CheckBcryptPasswords():
 
     start = time.time()
 
-    with open('Credentials.txt', 'r') as credentialsFile:
+    with open('../Extra Code/Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     ## Put top passwords into an array
-    with open('top-1million-password-list.txt', 'r') as passwordsFile:
+    with open('../Extra Code/top-1million-password-list.txt', 'r') as passwordsFile:
         topPasswords = passwordsFile.read().split()
 
     loginInfo = [['' for _ in range(2)] for _ in range(50)]
