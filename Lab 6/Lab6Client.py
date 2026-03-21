@@ -1,15 +1,18 @@
+
 # !/usr/bin/env python3
 from socket import *
 import os
 # import struct
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+
+"""Secure Session Key Exchange Protocol and Diagram"""
 ##############################################################################
 #                                                                            #
 #                     >>>---E(PUB-Se, [N1 || ID-A])--->>>                    #
@@ -18,19 +21,29 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 #          | Client |                                    | Server |          #
 #          +--------+                                    +--------+          #
 #                     >>>---E(PUB-Se, N2)------------->>>                    #
-#                     >>>---E(PUB-Se, E(PRI-Cl, Key))->>>                  #
+#                     >>>---E(PUB-Se, E(PRI-Cl, Key))->>>                    #
 #                                                                            #
 ##############################################################################
 
-
-# Secure Session Key Exchange Protocol
 # (1) Public/Private key creation on both sides
-# (2) Creation of first nonce on client side
-# (3) Client sends
+#    (1a) Method: GenerateKey()
+# (2) Both client and server send out public keys
+# (3) Creation of Nonce 1 on client side
+#    (3a) Method: CreateNonce()
+# (4) Client sends Nonce 1 and identifier as encrypted message
+#    (4a) Method: RSAEncrypt()
+#    (4b) Method: RSADecrypt()
+#    (4c) ID will just be "luke"
+# (5) Server creates Nonce 2
+# (6) Server sends Nonce 1 and Nonce 2 as encrypted message
+# (7) Client sends back Nonce 2 as encrypted message
+# (8) Client encrypts session key using Client private key
+# (9) Client sends encrypted session key encrypted with server public key
 
 
 SECRET_KEY = b"0123456789abcdef"  # 16 bytes = AES-128 (demo key)
 BLOCK_SIZE_BITS = 128
+SuccessMessage = 'login successful'
 
 
 def EncryptMessage(key: bytes, plaintext: bytes) -> bytes:
@@ -55,14 +68,51 @@ def DecryptMessage(key: bytes, data: bytes) -> bytes:
     return unpadder.update(padded) + unpadder.finalize()
 
 
+def Login():
+    GenerateRSAPair()
+
+    clientSocket = socket(AF_INET, SOCK_STREAM)
+    clientSocket.connect(('localhost', 8089))
+    print('client connection successful\n')
+
+    loginRequest = "KeyExchange" + "\t" + "" + "\t" + ""
+    encryptedMsg = RSAEncrypt(loginRequest.encode())
+    clientSocket.send(encryptedMsg)
+
+    loginAttempts = 0
+    while loginAttempts < 5:
+
+        # TODO remove when manual input is needed
+        loginRequest = "Login" + "\t" + "painters" + "\t" + "vp2aNk"
+
+        # Encrypt and send message
+        encryptedMsg = RSAEncrypt(loginRequest.encode())
+        clientSocket.send(encryptedMsg)
+
+        # Receive response from server
+        serverResponse = clientSocket.recv(1024)
+        decryptedServerResponse = RSADecrypt(serverResponse).decode("ascii")
+
+        # Break loop if login success
+        if decryptedServerResponse == SuccessMessage:
+            print('login successful')
+            break
+        print(decryptedServerResponse)
+        loginAttempts += 1
+
+    # print out message too many logins without success
+    if loginAttempts >= 5: print('too many login attempts')
+
+    # Send disconnect signal
+    loginRequest = "Disconnect" + "\t" + " " + "\t" + " "
+    encryptedMsg = EncryptMessage(SECRET_KEY, loginRequest.encode())
+    clientSocket.send(encryptedMsg)
+    clientSocket.close()
+
+
 def GenerateRSAPair():
 
-    validLengths = 2048, 3072, 4096
-
-    keyLength = int(input("Enter length of key (2048, 3072, or 4096): "))
-
-    while keyLength not in validLengths:
-        keyLength = int(input("Enter valid length of key: "))
+    keyLength = 3072
 
     privateKey = rsa.generate_private_key(
         public_exponent=65537,
@@ -77,17 +127,17 @@ def GenerateRSAPair():
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
-    with (open('Private_Key' + str(keyLength) + '.pem', 'wb')
+    with (open('Client_Private_Key.pem', 'wb')
           as fw): fw.write(privatePem)
-    with (open('Public_Key' + str(keyLength) + '.pem', 'wb')
+    with (open('Client_Public_Key.pem', 'wb')
           as fw): fw.write(publicPem)
 
     return keyLength
 
 
-def RSAEncrypt(plainText, keyLength):
+def RSAEncrypt(plainText):
 
-    with open('Public_Key' + str(keyLength) + '.pem', "rb") as key_file:
+    with open('Server_Public_Key.pem', "rb") as key_file:
         publicKey = serialization.load_pem_public_key(key_file.read())
 
     ciphertext = publicKey.encrypt(plainText, padding.OAEP(
@@ -98,9 +148,9 @@ def RSAEncrypt(plainText, keyLength):
     return ciphertext
 
 
-def RSADecrypt(cipherText, keyLength):
+def RSADecrypt(cipherText):
 
-    with open('Private_Key' + str(keyLength) + '.pem', "rb") as key_file:
+    with open('Client_Private_Key.pem', "rb") as key_file:
         private_key = serialization.load_pem_private_key(
             key_file.read(), password=None,)
 
@@ -112,79 +162,26 @@ def RSADecrypt(cipherText, keyLength):
     return decryptedPlainText
 
 
-def main():
-    ###################
-    # Socket Creation #
-    ###################
+def CreateNonce():
+    pass
 
-    # Create socket to connect with the server side
-    # server = "10.0.2.4"
-    # serverPort = 34567
+
+def KeyExchange():
+    GenerateRSAPair()
 
     clientSocket = socket(AF_INET, SOCK_STREAM)
-
-    # clientSocket.connect((server, serverPort))
     clientSocket.connect(('localhost', 8089))
     print('client connection successful\n')
 
-    loginAttempts = 0
-    successMessage = 'login successful'
+    loginRequest = "KeyExchange" + "\t" + "" + "\t" + "luke"
+    encryptedMsg = RSAEncrypt(loginRequest.encode())
+    clientSocket.send(encryptedMsg)
 
-    ##########################
-    # Client Protocol Design #
-    ##########################
-
-    # Keep connection open until correct login is entered
-    #   or 5 incorrect attempts are entered
-    while loginAttempts < 5:
-
-        # Prepare a login message
-        # userName = input("Input the user name: |")
-        # password = input("Input the password: |")
-        # loginRequest = "Login" + "\t" + userName + "\t" + password
-
-        # TODO remove when actual input is needed
-        userName = "painters"
-        password = "vp2aNk"
-        loginRequest = "Login" + "\t" + userName + "\t" + password
-
-        # Encrypt the message
-        encryptedMsg = EncryptMessage(SECRET_KEY, loginRequest.encode())
-
-        # Send the encrypted message to the server
-        clientSocket.send(encryptedMsg)
-
-        # Receive the response from the server
-        serverResponse = clientSocket.recv(1024)
-
-        # Decrypt the received response Message
-        # Decode the message to string (using decode("ascii") )
-        decryptedServerResponse = DecryptMessage(
-            SECRET_KEY,
-            serverResponse).decode("ascii")
-
-        # Parse the response message
-        # If it is response to the login request, and it indicates success,
-        #   print the message that login succeeded
-        if decryptedServerResponse == successMessage:
-            print('login successful')
-            break
-
-        # else, print that the login attempt failed.
-        print(decryptedServerResponse)
-        loginAttempts += 1
-
-    # print out message too many logins without success
-    if loginAttempts >= 5: print('too many login attempts')
-
-    # Send disconnect signal
-    loginRequest = "Disconnect" + "\t" + " " + "\t" + " "
     encryptedMsg = EncryptMessage(SECRET_KEY, loginRequest.encode())
     clientSocket.send(encryptedMsg)
 
-    # Close the connection socket when the session is done
     clientSocket.close()
 
 
 if __name__ == "__main__":
-    main()
+    KeyExchange()
