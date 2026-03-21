@@ -30,18 +30,20 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 # (2) Both client and server send out public keys
 # (3) Creation of Nonce 1 on client side
 #    (3a) Method: CreateNonce()
+#    (3b) For now, nonce will just be -1 on client side
+#    (3c) -2 on server side
+#    (3d) Will create proper nonce later
 # (4) Client sends Nonce 1 and identifier as encrypted message
 #    (4a) Method: RSAEncrypt()
 #    (4b) Method: RSADecrypt()
-#    (4c) ID will just be "luke"
+#    (4c) ID will be username and password
 # (5) Server creates Nonce 2
 # (6) Server sends Nonce 1 and Nonce 2 as encrypted message
 # (7) Client sends back Nonce 2 as encrypted message
 # (8) Client encrypts session key using Client private key
 # (9) Client sends encrypted session key encrypted with server public key
 
-
-SECRET_KEY = b"0123456789abcdef"  # 16 bytes = AES-128 (demo key)
+SESSION_KEY = os.urandom(16)
 BLOCK_SIZE_BITS = 128
 SuccessMessage = 'login successful'
 
@@ -105,7 +107,7 @@ def Login():
 
     # Send disconnect signal
     loginRequest = "Disconnect" + "\t" + " " + "\t" + " "
-    encryptedMsg = EncryptMessage(SECRET_KEY, loginRequest.encode())
+    encryptedMsg = EncryptMessage(SESSION_KEY, loginRequest.encode())
     clientSocket.send(encryptedMsg)
     clientSocket.close()
 
@@ -137,7 +139,7 @@ def GenerateRSAPair():
 
 def RSAEncrypt(plainText):
 
-    with open('Server_Public_Key.pem', "rb") as key_file:
+    with open('../Server/Server_Public_Key.pem', "rb") as key_file:
         publicKey = serialization.load_pem_public_key(key_file.read())
 
     ciphertext = publicKey.encrypt(plainText, padding.OAEP(
@@ -163,7 +165,7 @@ def RSADecrypt(cipherText):
 
 
 def CreateNonce():
-    pass
+    return str(-1)
 
 
 def KeyExchange():
@@ -173,15 +175,17 @@ def KeyExchange():
     clientSocket.connect(('localhost', 8089))
     print('client connection successful\n')
 
-    loginRequest = "KeyExchange" + "\t" + "" + "\t" + "luke"
+    nonce1 = CreateNonce()
+
+    loginRequest = "KeyExchange" + "\t" + nonce1 + "\t" + "luke"
     encryptedMsg = RSAEncrypt(loginRequest.encode())
     clientSocket.send(encryptedMsg)
 
-    encryptedMsg = EncryptMessage(SECRET_KEY, loginRequest.encode())
+    encryptedMsg = EncryptMessage(SESSION_KEY, loginRequest.encode())
     clientSocket.send(encryptedMsg)
 
     clientSocket.close()
 
 
 if __name__ == "__main__":
-    KeyExchange()
+    GenerateRSAPair()

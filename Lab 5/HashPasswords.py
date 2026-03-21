@@ -10,7 +10,7 @@ def HashCredentials():
     # Create file with hashed credentials #
     #######################################
 
-    with open('../Extra Code/Credentials.txt', 'r') as credentialsFile:
+    with open('../Lab 6/Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     loginInfo = [['' for _ in range(2)] for _ in range(50)]
@@ -165,7 +165,7 @@ def CheckBcryptPasswords():
 
     start = time.time()
 
-    with open('../Extra Code/Credentials.txt', 'r') as credentialsFile:
+    with open('../Lab 6/Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     ## Put top passwords into an array

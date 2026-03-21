@@ -115,15 +115,15 @@ def CheckBigSaltedPasswords():
 
     start = time.time()
 
-    ## Get just salts from Credentials.txt
-    ## This is just so I don't have to clutter the project with
-    ##      unnecessary files
+    # Get just salts from Credentials.txt
+    # This is just so I don't have to clutter the project with
+    #      unnecessary files
     salts = [''] * 50
     with open('CredsAndSalts.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
     for i in range(2, 52): salts[i - 2] = loginFile[(i * 3) - 4]
 
-    ## Put top passwords into an array
+    # Put top passwords into an array
     with open('top-1million-password-list.txt', 'r') as passwordsFile:
         topPasswords = passwordsFile.read().split()
 
@@ -135,7 +135,7 @@ def CheckBigSaltedPasswords():
         loginInfo[i][0] = credentials[i].split(' ', 1)[0]
         loginInfo[i][1] = credentials[i].split(' ', 1)[1]
 
-    ## Check passwords
+    # Check passwords
     foundPasswords = []
     saltIndex = 0
     digest = hashes.Hash(hashes.SHA256())
@@ -153,7 +153,7 @@ def CheckBigSaltedPasswords():
     end = time.time()
     length = end - start
     print(int(length), "seconds")
-    for _ in range(50): print('-', end = '')
+    for _ in range(50): print('-', end='')
     print('\n\n')
 
 
@@ -165,10 +165,10 @@ def CheckBcryptPasswords():
 
     start = time.time()
 
-    with open('Credentials.txt', 'r') as credentialsFile:
+    with open('../Lab 6/Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
-    ## Put top passwords into an array
+    # Put top passwords into an array
     with open('top-1million-password-list.txt', 'r') as passwordsFile:
         topPasswords = passwordsFile.read().split()
 
@@ -195,6 +195,23 @@ def CheckBcryptPasswords():
     end = time.time()
     length = end - start
     print(int(length), "seconds")
+
+
+def CreateBcryptHashFile():
+    with open('Credentials.txt', 'r') as credentialsFile:
+        loginFile = credentialsFile.read().split()
+
+    loginInfo = [['' for _ in range(2)] for _ in range(50)]
+    for i in range(100):
+        loginInfo[int(i / 2)][i % 2] = loginFile[i]
+
+    with open('BcryptCreds.txt', 'w') as hashedFile:
+        for myInfo in loginInfo:
+            myPassword = myInfo[1]
+            myPasswordHashed = bcrypt.hashpw(bytes(myPassword, 'utf-8'),
+                                             bcrypt.gensalt())
+            hashedFile.write(myInfo[0] + ' ')
+            hashedFile.write(str(myPasswordHashed) + '\n')
 
 
 def TestBcrypt():
@@ -247,7 +264,7 @@ def TestArgone2():
     with open('TestCreds.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
-    ## Put top passwords into an array
+    # Put top passwords into an array
     with open('TestPasswords.txt', 'r') as passwordsFile:
         topPasswords = passwordsFile.read().split()
 
@@ -318,13 +335,14 @@ def TestHashArray():
 
 
 if __name__ == "__main__":
-    # HashPasswords()
+    # HashCredentials()
     # SaltCredentials()
     # BigHashPasswords()
-    CheckBigHashedPasswords()
-    CheckBigSaltedPasswords()
+    # CheckBigHashedPasswords()
+    # CheckBigSaltedPasswords()
     # CheckBcryptPasswords()
-    TestBcrypt()
-    TestArgone2()
+    CreateBcryptHashFile()
+    # TestBcrypt()
+    # TestArgone2()
     # TestHashArray()
 

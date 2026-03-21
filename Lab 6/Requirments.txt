@@ -11,9 +11,9 @@ describe the actions of the receiver on how to use the received information for
 authentication and replay attack defense.
 
 (2) Implement your protocol in the code. Note that the client side should
-construct a 128-bit pr 256-bit random session key depending on you are using
+construct a 128-bit or 256-bit random session key depending on you are using
 AES-128 or AES-256 (should not be fixed like in Lab 2 anymore) and send it to
-the server side. This session key  should be used by the client and server
+the server side. This session key should be used by the client and server
 program for later login operations.
 
 (3) The client and server side should save the public keys of the other sides.
