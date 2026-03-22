@@ -165,7 +165,7 @@ def CheckBcryptPasswords():
 
     start = time.time()
 
-    with open('../Lab 6/Credentials.txt', 'r') as credentialsFile:
+    with open('../Lab 6/Server/Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     # Put top passwords into an array
@@ -183,6 +183,7 @@ def CheckBcryptPasswords():
         myPasswordHashed = bcrypt.hashpw(bytes(myPassword, 'utf-8'),
                                          bcrypt.gensalt())
         for testPassword in topPasswords:
+
             if bcrypt.checkpw(bytes(testPassword, 'utf-8'),
                               myPasswordHashed):
                 foundPasswords.append(myPassword)
@@ -237,9 +238,15 @@ def TestBcrypt():
         myPasswordHashed = bcrypt.hashpw(bytes(myPassword, 'utf-8'),
                                          bcrypt.gensalt())
 
+        # for testPassword in topPasswords:
+        #     if bcrypt.checkpw(bytes(testPassword, 'utf-8'),
+        #                       myPasswordHashed):
+        #         foundPasswords.append(myPassword)
+        #         foundUsernames.append(myInfo[0])
         for testPassword in topPasswords:
-            if bcrypt.checkpw(bytes(testPassword, 'utf-8'),
-                              myPasswordHashed):
+            testPasswordHashed = bcrypt.hashpw(bytes(testPassword, 'utf-8'),
+                                               bcrypt.gensalt())
+            if testPasswordHashed == myPasswordHashed:
                 foundPasswords.append(myPassword)
                 foundUsernames.append(myInfo[0])
 
@@ -341,8 +348,8 @@ if __name__ == "__main__":
     # CheckBigHashedPasswords()
     # CheckBigSaltedPasswords()
     # CheckBcryptPasswords()
-    CreateBcryptHashFile()
-    # TestBcrypt()
+    # CreateBcryptHashFile()
+    TestBcrypt()
     # TestArgone2()
     # TestHashArray()
 

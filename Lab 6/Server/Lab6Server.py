@@ -3,7 +3,7 @@
 from socket import *
 # import struct
 # from cryptography.hazmat.primitives import padding
-# import bcrypt
+import bcrypt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -11,6 +11,23 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 BLOCK_SIZE_BITS = 256
 SECRET_KEY = b"0123456789abcdef"
+
+
+def CreateBcryptHashFile():
+    with open('Credentials.txt', 'r') as credentialsFile:
+        loginFile = credentialsFile.read().split()
+
+    loginInfo = [['' for _ in range(2)] for _ in range(50)]
+    for i in range(100):
+        loginInfo[int(i / 2)][i % 2] = loginFile[i]
+
+    with open('BcryptCreds.txt', 'w') as hashedFile:
+        for myInfo in loginInfo:
+            myPassword = myInfo[1]
+            myPasswordHashed = bcrypt.hashpw(bytes(myPassword, 'utf-8'),
+                                             bcrypt.gensalt())
+            hashedFile.write(myInfo[0] + ' ')
+            hashedFile.write(str(myPasswordHashed) + '\n')
 
 
 def GenerateRSAPair():
@@ -119,14 +136,21 @@ def Login(sessionKey, username, password):
         if username == creds[i][0]: break
         usernameIndex += 1
 
+    print('server version: ', creds[usernameIndex][1])
+    print('sent version: ', password)
+
     # If index is greater that amount of usernames
     #    username was not found
     goodUsername = (usernameIndex <= len(creds))
+    print('username: ', username)
+    print('username status: ', goodUsername)
 
     # Check password associated with username
     goodPassword = False
     if goodUsername:
-        goodPassword = (creds[usernameIndex][1] == password)
+        goodPassword = (
+            bcrypt.checkpw(password))
+    print('password status: ', goodPassword)
 
     if not goodPassword: replyMessage = badPassword
     if not goodUsername: replyMessage = badUsername
@@ -150,7 +174,6 @@ def ConnectToClient():
 
     sessionKey = KeyExchange(serverSocket, clientNonce)
 
-    print('Step 5')
     loginInfo = serverSocket.recv(1024)
     decryptedLoginInfo = RSADecrypt(loginInfo).decode("ascii")
     password = decryptedLoginInfo.split('\t')[0]

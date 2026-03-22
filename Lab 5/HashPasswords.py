@@ -10,7 +10,7 @@ def HashCredentials():
     # Create file with hashed credentials #
     #######################################
 
-    with open('../Lab 6/Credentials.txt', 'r') as credentialsFile:
+    with open('../Lab 6/Server/Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     loginInfo = [['' for _ in range(2)] for _ in range(50)]
@@ -165,7 +165,7 @@ def CheckBcryptPasswords():
 
     start = time.time()
 
-    with open('../Lab 6/Credentials.txt', 'r') as credentialsFile:
+    with open('../Lab 6/Server/Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     ## Put top passwords into an array
@@ -202,11 +202,11 @@ def TestBcrypt():
 
     start = time.time()
 
-    with open('TestCreds.txt', 'r') as credentialsFile:
+    with open('../Extra Code/TestCreds.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     ## Put top passwords into an array
-    with open('TestPasswords.txt', 'r') as passwordsFile:
+    with open('../Extra Code/TestPasswords.txt', 'r') as passwordsFile:
         topPasswords = passwordsFile.read().split()
 
     loginInfo = [['' for _ in range(2)] for _ in range(2)]
@@ -244,11 +244,11 @@ def TestArgone2():
 
     start = time.time()
 
-    with open('TestCreds.txt', 'r') as credentialsFile:
+    with open('../Extra Code/TestCreds.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
     ## Put top passwords into an array
-    with open('TestPasswords.txt', 'r') as passwordsFile:
+    with open('../Extra Code/TestPasswords.txt', 'r') as passwordsFile:
         topPasswords = passwordsFile.read().split()
 
     loginInfo = [['' for _ in range(2)] for _ in range(2)]

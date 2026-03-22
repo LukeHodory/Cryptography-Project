@@ -20,7 +20,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 #          | Client |                                    | Server |          #
 #          +--------+                                    +--------+          #
 #                  >>-----E(PUB-Se, N2)------------------>>                  #
-#                  >>-----E(PUB-Se, Key))------>>                  #
+#                  >>-----E(PUB-Se, Key))---------------->>                  #
 #                  >>-----E(PUB-Se, E(Key, Password-A))-->>                  #
 #                                                                            #
 ##############################################################################
@@ -30,8 +30,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 # (2) Both client and server send out public keys
 # (3) Creation of Nonce 1 on client side
 #    (3a) Method: CreateNonce()
-#    (3b) For now, nonce will just be -1 on client side
-#    (3c) -2 on server side
+#    (3b) For now, nonce will just be 'client nonce' on client side
+#    (3c) 'server nonce' on server side
 #    (3d) Will create proper nonce later
 # (4) Client sends Nonce 1 and identifier as encrypted message
 #    (4a) Method: RSAEncrypt()
@@ -150,8 +150,14 @@ def Login(clientSocket, password, username):
 
     successMessage = 'Login Successful\n'
     loginSuccess = False
+    passwordHashed = (
+        bcrypt.hashpw(bytes(password, 'utf-8')))
 
-    loginInfo = password + "\t" + username
+    passwordHashed = bcrypt.hashpw(bytes(password, 'utf-8'), bcrypt.gensalt())
+    print(password)
+    print(passwordHashed)
+
+    loginInfo = str(passwordHashed) + "\t" + username
 
     encryptedPassword = RSAEncrypt(loginInfo.encode())
     clientSocket.send(encryptedPassword)
@@ -173,9 +179,17 @@ def ConnectToServer():
     username = 'painters'
     password = 'vp2aNk'
 
+    passwordHashed = bcrypt.hashpw(bytes(password, 'utf-8'), bcrypt.gensalt())
+    print(password)
+    print(passwordHashed)
+
     if not KeyExchange(clientSocket, username):
         clientSocket.close()
         exit()
+
+    passwordHashed = bcrypt.hashpw(bytes(password, 'utf-8'), bcrypt.gensalt())
+    print(password)
+    print(passwordHashed)
 
     loginAttempts = 0
     while loginAttempts < 5:
