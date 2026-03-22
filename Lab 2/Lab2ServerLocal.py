@@ -11,7 +11,6 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
 
 SECRET_KEY = b"0123456789abcdef" # 16 bytes = AES-128 (demo key)
-
 BLOCK_SIZE_BITS = 128
 
 

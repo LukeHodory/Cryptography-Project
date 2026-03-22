@@ -2,8 +2,9 @@
 # !/usr/bin/env python3
 from socket import *
 import os
+import bcrypt
 # import struct
-from cryptography.hazmat.primitives import padding
+# from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -13,14 +14,14 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 """Secure Session Key Exchange Protocol and Diagram"""
 ##############################################################################
 #                                                                            #
-#                     >>--E(PUB-Se, [N1 || ID-A])---->>                      #
-#                     <<--E(PUB-Cl, [N1 || N2])------<<                      #
+#                  >>-----E(PUB-Se, [N1 || ID-A])------->>                   #
+#                  <<-----E(PUB-Cl, [N1 || N2])---------<<                   #
 #          +--------+                                    +--------+          #
 #          | Client |                                    | Server |          #
 #          +--------+                                    +--------+          #
-#                     >>--E(PUB-Se, N2)--------------->>                     #
-#                     >>--E(PUB-Se, E(PRI-Cl, Key))--->>                     #
-#                     >>--E(Pub-Se, Password-A)------->>                     #
+#                  >>-----E(PUB-Se, N2)------------------>>                  #
+#                  >>-----E(PUB-Se, Key))------>>                  #
+#                  >>-----E(PUB-Se, E(Key, Password-A))-->>                  #
 #                                                                            #
 ##############################################################################
 
@@ -48,8 +49,9 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 #    credentials and the corresponding password matches,
 #    or until 5 failed login attempts
 
-SESSION_KEY = os.urandom(16)
-BLOCK_SIZE_BITS = 128
+SESSION_KEY = os.urandom(128)
+SECRET_KEY = '0123456789abcdef'
+BLOCK_SIZE_BITS = 256
 SuccessMessage = 'login successful'
 
 
@@ -106,45 +108,45 @@ def RSADecrypt(cipherText):
 
 
 def CreateNonce():
-    return str(-1)
+    return 'Client Nonce'
 
 
 def KeyExchange(clientSocket, username):
+    myNonce = CreateNonce()
+    nonceMessage = username + "\t" + myNonce
 
-    myNonce = username + "\t" + CreateNonce()
-
-    encryptedNonce = RSAEncrypt(myNonce.encode())
+    # Step 1, send first nonce
+    encryptedNonce = RSAEncrypt(nonceMessage.encode())
     clientSocket.send(encryptedNonce)
 
+    # Step 2, receive first and second nonce
     nonceResponse = clientSocket.recv(1024)
     decryptedNonceResponse = RSADecrypt(nonceResponse).decode("ascii")
 
-    replyNonce = decryptedNonceResponse.split('\t')[0]
+    firstNonce = decryptedNonceResponse.split('\t')[0]
     newNonce = decryptedNonceResponse.split('\t')[1]
 
-    if replyNonce != myNonce:
+    if firstNonce != myNonce:
         print('Reply nonce does not match what was sent')
         clientSocket.close()
-        return False
+        exit()
 
+    # Step 3, send back second nonce
     encryptedReplyNonce = RSAEncrypt(newNonce.encode())
     clientSocket.send(encryptedReplyNonce)
 
-    with open('Client_Private_Key.pem', "rb") as key_file:
-        privateKey = serialization.load_pem_public_key(key_file.read())
+    clientSocket.recv(1024)
 
-    encryptedKey = privateKey.encrypt(SESSION_KEY, padding.OAEP(
-        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-        algorithm=hashes.SHA256(),
-        label=None))
-
-    keyShare = RSAEncrypt(encryptedKey)
+    # Step 4, send session key
+    keyShare = RSAEncrypt(SESSION_KEY)
     clientSocket.send(keyShare)
 
     return True
 
 
 def Login(clientSocket, password, username):
+
+    # TODO use session key to encrypt loginInfo before RSA encrypt
 
     successMessage = 'Login Successful\n'
     loginSuccess = False
@@ -182,9 +184,9 @@ def ConnectToServer():
         if loginSuccess:
             print('Login Successful!')
             break
+        loginAttempts += 1
 
         print(loginMessage)
-        loginAttempts += 1
 
         username = input('username: ')
         password = input('password: ')
@@ -196,4 +198,4 @@ def ConnectToServer():
 
 
 if __name__ == "__main__":
-    GenerateRSAPair()
+    ConnectToServer()

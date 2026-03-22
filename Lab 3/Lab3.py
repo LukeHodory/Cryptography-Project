@@ -2,6 +2,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
+import bcrypt
 
 
 def GenerateKey():
@@ -26,9 +27,9 @@ def GenerateKey():
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
-    with (open('Private_Key' + str(keyLength) + '.pem', 'wb')
+    with (open('Private_Key.pem', 'wb')
           as fw): fw.write(privatePem)
-    with (open('Public_Key' + str(keyLength) + '.pem', 'wb')
+    with (open('Public_Key.pem', 'wb')
           as fw): fw.write(publicPem)
 
     return keyLength
@@ -36,7 +37,7 @@ def GenerateKey():
 
 def Encrypt(plainText, keyLength):
 
-    with open('Public_Key' + str(keyLength) + '.pem', "rb") as key_file:
+    with open('Public_Key.pem', "rb") as key_file:
         publicKey = serialization.load_pem_public_key(key_file.read())
 
     ciphertext = publicKey.encrypt(plainText, padding.OAEP(
@@ -49,7 +50,7 @@ def Encrypt(plainText, keyLength):
 
 def Decrypt(cipherText, keyLength):
 
-    with open('Private_Key' + str(keyLength) + '.pem', "rb") as key_file:
+    with open('Private_Key.pem', "rb") as key_file:
         private_key = serialization.load_pem_private_key(
             key_file.read(), password=None,)
 
@@ -58,6 +59,9 @@ def Decrypt(cipherText, keyLength):
         algorithm=hashes.SHA256(),
         label=None))
 
+    myPasswordHashed = bcrypt.hashpw(bytes(myPassword, 'utf-8'),
+                                     bcrypt.gensalt())
+
     return decryptedPlainText
 
 
@@ -65,7 +69,10 @@ def main():
 
     # PLAINTEXT MESSAGE
     message = b"science compels us to explode the sun"
+    message2 = b"science compels us to explode the sun"
     cipherText = ''
+
+    newMess = message + '\t'.encode() + message2
 
     keyLength = 0
     keyFileCreated = False
@@ -80,13 +87,15 @@ def main():
 
         choice = int(input("Enter option: "))
 
+        print(newMess)
+
         if choice == 1:
             keyLength = GenerateKey()
             keyFileCreated = True
 
         elif choice == 2:
         # elif choice == 2 and keyFileCreated:
-            cipherText = Encrypt(message, keyLength)
+            cipherText = Encrypt(newMess, keyLength)
             print(cipherText)
             with (open('EncryptedFile.txt', 'w')
                  as fw):

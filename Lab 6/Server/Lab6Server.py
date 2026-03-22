@@ -1,116 +1,16 @@
 
 # !/usr/sbin/python3
 from socket import *
-import os
 # import struct
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding
+# from cryptography.hazmat.primitives import padding
+# import bcrypt
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-SECRET_KEY = b"0123456789abcdef"  # 16 bytes = AES-128 (demo key)
-BLOCK_SIZE_BITS = 128
-
-
-def EncryptMessage(key: bytes, plaintext: bytes) -> bytes:
-    iv = os.urandom(16)
-    padder = padding.PKCS7(BLOCK_SIZE_BITS).padder()
-    padded = padder.update(plaintext) + padder.finalize()
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv),
-                    backend=default_backend())
-    encryptor = cipher.encryptor()
-    ciphertext = encryptor.update(padded) + encryptor.finalize()
-    return iv + ciphertext
-
-
-def DecryptMessage(key: bytes, data: bytes) -> bytes:
-    iv = data[:16]
-    ciphertext = data[16:]
-    cipher = Cipher(algorithms.AES(key), modes.CBC(iv),
-                    backend=default_backend())
-    decryptor = cipher.decryptor()
-    padded = decryptor.update(ciphertext) + decryptor.finalize()
-    unpadder = padding.PKCS7(BLOCK_SIZE_BITS).unpadder()
-    return unpadder.update(padded) + unpadder.finalize()
-
-
-def checkCreds(username, password):
-
-    # Create hash digest
-    myDigest = hashes.Hash(hashes.SHA256())
-    myDigest.update(bytes(password, 'utf-8'))
-    hashedPasswordAttempt = str(myDigest.finalize())
-
-    # Read in hashed credentials from file
-    with open('HashedCredentials.txt', 'r') as credentialsFile:
-        credentials = credentialsFile.read().split('\n')
-
-    # Put usernames and passwords into 2d array
-    loginInfo = [['' for _ in range(2)] for _ in range(50)]
-    for i in range(50):
-        loginInfo[i][0] = credentials[i].split(' ', 1)[0]
-        loginInfo[i][1] = credentials[i].split(' ', 1)[1]
-
-    # Find index of username, if it exists
-    goodUsername = False
-    usernameIndex = 0
-    for i in range(50):
-        if username == loginInfo[i][0]:
-            goodUsername = True
-            break
-        usernameIndex += 1
-
-    # Check password associated with username
-    goodPassword = False
-    if goodUsername:
-        goodPassword = (loginInfo[usernameIndex][1] == hashedPasswordAttempt)
-
-    return goodUsername, goodPassword
-
-
-def Login(username, password):
-    replyMessage = 'login successful'
-    badUsername = 'user name does not exist\n'
-    badPassword = 'incorrect password\n'
-
-    # Construct login message
-    goodUsername, goodPassword = checkCreds(username, password)
-    if not goodPassword: replyMessage = badPassword
-    if not goodUsername: replyMessage = badUsername
-
-    # Create hash digest
-    myDigest = hashes.Hash(hashes.SHA256())
-    myDigest.update(bytes(password, 'utf-8'))
-    hashedPasswordAttempt = str(myDigest.finalize())
-
-    # Read in hashed credentials from file
-    with open('HashedCredentials.txt', 'r') as credentialsFile:
-        credentials = credentialsFile.read().split('\n')
-
-    # Put usernames and passwords into 2d array
-    loginInfo = [['' for _ in range(2)] for _ in range(50)]
-    for i in range(50):
-        loginInfo[i][0] = credentials[i].split(' ', 1)[0]
-        loginInfo[i][1] = credentials[i].split(' ', 1)[1]
-
-    # Find index of username, if it exists
-    goodUsername = False
-    usernameIndex = 0
-    for i in range(50):
-        if username == loginInfo[i][0]:
-            goodUsername = True
-            break
-        usernameIndex += 1
-
-    # Check password associated with username
-    goodPassword = False
-    if goodUsername:
-        goodPassword = (loginInfo[usernameIndex][1] == hashedPasswordAttempt)
-
-    return goodUsername, goodPassword
+BLOCK_SIZE_BITS = 256
+SECRET_KEY = b"0123456789abcdef"
 
 
 def GenerateRSAPair():
@@ -166,56 +66,101 @@ def RSADecrypt(cipherText):
 
 
 def CreateNonce():
-    return str(-2)
+    return 'Server Nonce'
 
 
-def KeyExchange():
-    GenerateRSAPair()
+def KeyExchange(serverSocket, firstNonce):
+    newNonce = CreateNonce()
+    nonceReply = firstNonce + "\t" + CreateNonce()
 
-    serverSocket = socket(AF_INET, SOCK_STREAM)
-    serverSocket.bind(('localhost', 8089))
-    serverSocket.listen(1)
+    # Step 2, send first and second nonce
+    encryptedReply = RSAEncrypt(nonceReply.encode())
+    serverSocket.send(encryptedReply)
+
+    # Step 3, receive back second nonce
+    nonceResponse = serverSocket.recv(1024)
+
+    decryptedNonceResponse = RSADecrypt(nonceResponse).decode("ascii")
+    if decryptedNonceResponse != newNonce:
+        message = 'Reply nonce does not match what was sent'
+        print(message)
+        serverSocket.send(message)
+        serverSocket.close()
+        exit()
+
+    wait = 'wait'
+    serverSocket.send(wait.encode())
+
+    # Step 4, receive session key
+    encryptedKey = serverSocket.recv(1024)
+    # sessionKey = RSADecrypt(encryptedKey).decode("ascii")
+    sessionKey = RSADecrypt(encryptedKey)
+
+    return sessionKey
+
+
+def Login(sessionKey, username, password):
+
+    badUsername = 'User name does not exist\n'
+    badPassword = 'Incorrect password\n'
+    replyMessage = 'Login Successful\n'
+
+    # Read in creds from file into array
+    with open('BcryptCreds.txt', 'r') as credentialsFile:
+        credentials = credentialsFile.read().split('\n')
+    creds = [['' for _ in range(2)] for _ in range(50)]
+    for i in range(50):
+        creds[i][0] = credentials[i].split(' ', 1)[0]
+        creds[i][1] = credentials[i].split(' ', 1)[1]
+
+    # Find index of username, if it exists
+    usernameIndex = 0
+    for i in range(50):
+        if username == creds[i][0]: break
+        usernameIndex += 1
+
+    # If index is greater that amount of usernames
+    #    username was not found
+    goodUsername = (usernameIndex <= len(creds))
+
+    # Check password associated with username
+    goodPassword = False
+    if goodUsername:
+        goodPassword = (creds[usernameIndex][1] == password)
+
+    if not goodPassword: replyMessage = badPassword
+    if not goodUsername: replyMessage = badUsername
+
+    return replyMessage
+
+
+def ConnectToClient():
+
+    # Create Socket
+    newSocket = socket(AF_INET, SOCK_STREAM)
+    newSocket.bind(('localhost', 8089))
+    newSocket.listen(1)
     print("The server is ready to receive requests")
-    connectSocket, addr = serverSocket.accept()
+    serverSocket, addr = newSocket.accept()
 
-    # Receive message from client
-    encryptedMessage = connectSocket.recv(1024)
-    sessionInfo = RSADecrypt(encryptedMessage).decode("ascii")
+    # Step 1, receive first nonce
+    encryptedRequest = serverSocket.recv(1024)
+    keyExchangeInfo = RSADecrypt(encryptedRequest).decode("ascii")
+    clientNonce = keyExchangeInfo.split('\t')[1]
 
-    # Parse message
-    nonce1 = sessionInfo.split('\t')[1]
-    callerIdentity = sessionInfo.split('\t')[2]
-    print('nonce info: ', nonce1)
-    print('caller identity: ', callerIdentity)
+    sessionKey = KeyExchange(serverSocket, clientNonce)
 
-    nonce2 = CreateNonce()
+    print('Step 5')
+    loginInfo = serverSocket.recv(1024)
+    decryptedLoginInfo = RSADecrypt(loginInfo).decode("ascii")
+    password = decryptedLoginInfo.split('\t')[0]
+    username = decryptedLoginInfo.split('\t')[1]
 
-    replyMessage = "KeyExchange" + "\t" + nonce1 + "\t" + nonce2
+    loginStatus = Login(sessionKey, username, password)
 
-    encryptedReply = RSAEncrypt(replyMessage.encode())
-    connectSocket.send(encryptedReply)
-
-
-def main():
-    serverSocket = socket(AF_INET, SOCK_STREAM)
-    serverSocket.bind(('localhost', 8089))
-    serverSocket.listen(1)
-    print("The server is ready to receive requests")
-    connectSocket, addr = serverSocket.accept()
-
-    # Receive login info from client
-    encryptedRequest = connectSocket.recv(1024)
-    loginInfo = DecryptMessage(SECRET_KEY, encryptedRequest).decode("ascii")
-
-    username = loginInfo.split('\t')[1]
-    password = loginInfo.split('\t')[2]
-
-    encryptedReply = EncryptMessage(SECRET_KEY, replyMessage.encode())
-    connectSocket.send(encryptedReply)
-
-    connectSocket.close()
-
+    encryptedLoginStatus = RSAEncrypt(loginStatus.encode())
+    serverSocket.send(encryptedLoginStatus)
 
 
 if __name__ == "__main__":
-    GenerateRSAPair()
+    ConnectToClient()
