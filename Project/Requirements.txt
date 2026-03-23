@@ -1,0 +1,70 @@
+In this project, you will integrate what you have implemented in previous labs
+and build a complete secure app.
+
+Tasks:
+The special functions that must be implemented:
+
+A handshake protocol for the client and server to:
+
+(1)
+negotiate cryptography package: public key cryptography algorithm, key
+length, padding mode; symmetric key encryption algorithm, operation mode, and
+key length. The client should provide the options, and the server should pick
+up one that it supports. To simplify it, the server could simply choose the one
+with the longest key length. For AES operation mode, server should not allow
+using ECB mode and could make a random choice for other modes. No specific
+requirements for other metrics except that both sides should support the metric
+selected.
+
+Note that in your implementation, you are only expected to support RSA for
+public key cryptography and AES for symmetric key cryptography. But you need
+to support other metrics (e.g. different key length) for RSA and AES. The keys
+should be generated after the negotiation is completed successfully
+(the server could terminate the session if it can not support any cryptographic
+metric supported by the client).
+
+To support the test, you should have a cryptography configuration file at the
+client side and a (different)  cryptography configuration file at the server
+side. The configuration file specify the public key cryptographic and detailed
+metrics that they support.
+
+(2)
+Exchange the certificate and authenticate them before using the public key
+of the other side. The X509 certificate generation and authentication APIs can
+be found at https://cryptography.io/en/latest/x509/tutorial to an
+external site. Note that you should add code for generating certificates (in
+addition to the RSA public/private key generation code in Lab 3).
+
+Note that the handshake protocol is comparable to SSL, but you should design
+your own version, which should be simpler than SSL.
+
+2a)
+A secure session key exchange protocol using the public key of the
+communication peer. Make sure the protocol implemented mutual authentication
+and integrated replay attack defense (basically code from Lab 6, except the
+public key is through the certificate exchange this time).
+2b)
+Using the session key obtained through the key exchange protocol for the later
+login operations (Lab 6 and Lab 2 content).
+2c)
+If you have implemented the failed login attempts control (5 times) at the
+client side in Lab 2, you need to revise the design of protocol and
+implementation, and make sure the server side make the control. The server
+should also create a log file about a user's consecutively failed attempts.
+
+
+What to submit:
+
+The design of the system and especially all related protocol messages plus some
+necessary description of message processing on client or server side. Put them
+in the same document as your test report.
+
+Your complete set of codes (uploading the file one by one is the best, try not
+to use zipped files).
+
+A report on the running result of the app, your observations and reflections.
+This should include screenshots of the printed results for the main protocol
+message and a couple of wireshark screenshots (if you are running client and
+server on the same computer, choose the loopback interface when starting
+wireshark). For the cryptography suite exchange , use at least two sets of
+configurations and showed the different negotiation results.

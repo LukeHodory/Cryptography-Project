@@ -1,12 +1,11 @@
-
-# !/usr/bin/env python3
 from socket import *
 import os
 import bcrypt
-# import struct
-# from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 
@@ -50,14 +49,15 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 #    or until 5 failed login attempts
 
 SESSION_KEY = os.urandom(128)
-SECRET_KEY = '0123456789abcdef'
 BLOCK_SIZE_BITS = 256
-SuccessMessage = 'login successful'
 
 
-def GenerateRSAPair():
+def GenerateRSAPair(thisLocation: str) -> None:
+    # thisLocation = machine private key is for
 
     keyLength = 3072
+    privateFile = thisLocation + '_Private_Key.pem'
+    publicFile = thisLocation + '_Public_Key.pem'
 
     privateKey = rsa.generate_private_key(
         public_exponent=65537,
@@ -72,15 +72,35 @@ def GenerateRSAPair():
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
-    with (open('Client_Private_Key.pem', 'wb')
+    with (open(privateFile, 'wb')
           as fw): fw.write(privatePem)
-    with (open('Client_Public_Key.pem', 'wb')
+    with (open(publicFile, 'wb')
           as fw): fw.write(publicPem)
 
-    return keyLength
+
+def SymEncrypt(key: bytes, plaintext: bytes) -> bytes:
+    iv = os.urandom(16)
+    padder = padding.PKCS7(BLOCK_SIZE_BITS).padder()
+    padded = padder.update(plaintext) + padder.finalize()
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv),
+                    backend=default_backend())
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(padded) + encryptor.finalize()
+    return iv + ciphertext
 
 
-def RSAEncrypt(plainText):
+def SymDecrypt(key: bytes, cipherText: bytes) -> bytes:
+    iv = cipherText[:16]
+    ciphertext = cipherText[16:]
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv),
+                    backend=default_backend())
+    decryptor = cipher.decryptor()
+    padded = decryptor.update(ciphertext) + decryptor.finalize()
+    unpadder = padding.PKCS7(BLOCK_SIZE_BITS).unpadder()
+    return unpadder.update(padded) + unpadder.finalize()
+
+
+def RSAEncrypt(plainText: bytes) -> bytes:
 
     with open('Server_Public_Key.pem', "rb") as key_file:
         publicKey = serialization.load_pem_public_key(key_file.read())
@@ -93,7 +113,7 @@ def RSAEncrypt(plainText):
     return ciphertext
 
 
-def RSADecrypt(cipherText):
+def RSADecrypt(cipherText: bytes) -> bytes:
 
     with open('Client_Private_Key.pem', "rb") as key_file:
         private_key = serialization.load_pem_private_key(
@@ -107,12 +127,12 @@ def RSADecrypt(cipherText):
     return decryptedPlainText
 
 
-def CreateNonce():
+def CreateClientNonce() -> str:
     return 'Client Nonce'
 
 
-def KeyExchange(clientSocket, username):
-    myNonce = CreateNonce()
+def ClientSideKeyExchange(clientSocket, username: str) -> bool:
+    myNonce = CreateClientNonce()
     nonceMessage = username + "\t" + myNonce
 
     # Step 1, send first nonce
@@ -144,7 +164,7 @@ def KeyExchange(clientSocket, username):
     return True
 
 
-def Login(clientSocket, password, username):
+def ClientSideLogin(clientSocket, password, username) -> [bool, str]:
 
     # TODO use session key to encrypt loginInfo before RSA encrypt
 
@@ -183,7 +203,7 @@ def ConnectToServer():
     print(password)
     print(passwordHashed)
 
-    if not KeyExchange(clientSocket, username):
+    if not ClientSideKeyExchange(clientSocket, username):
         clientSocket.close()
         exit()
 
@@ -193,7 +213,8 @@ def ConnectToServer():
 
     loginAttempts = 0
     while loginAttempts < 5:
-        loginSuccess, loginMessage = Login(clientSocket, password, username)
+        loginSuccess, loginMessage = (
+            ClientSideLogin(clientSocket, password, username))
 
         if loginSuccess:
             print('Login Successful!')

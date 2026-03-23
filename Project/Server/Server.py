@@ -1,19 +1,20 @@
-
-# !/usr/sbin/python3
 from socket import *
-# import struct
-# from cryptography.hazmat.primitives import padding
+import os
 import bcrypt
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 BLOCK_SIZE_BITS = 256
-SECRET_KEY = b"0123456789abcdef"
+myLocation = 'Server'
+thatLocation = 'Client'
 
 
-def CreateBcryptHashFile():
+def CreateBcryptHashFile() -> None:
     with open('Credentials.txt', 'r') as credentialsFile:
         loginFile = credentialsFile.read().split()
 
@@ -30,9 +31,13 @@ def CreateBcryptHashFile():
             hashedFile.write(str(myPasswordHashed) + '\n')
 
 
-def GenerateRSAPair():
+def GenerateRSAPair(thisLocation: str) -> None:
+    # thisLocation = machine this private key is for
+    # "Server" in this case
 
     keyLength = 3072
+    privateFile = thisLocation + '_Private_Key.pem'
+    publicFile = thisLocation + '_Public_Key.pem'
 
     privateKey = rsa.generate_private_key(
         public_exponent=65537,
@@ -47,16 +52,35 @@ def GenerateRSAPair():
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
-    with (open('Server_Private_Key.pem', 'wb')
+    with (open(privateFile, 'wb')
           as fw): fw.write(privatePem)
-    with (open('Server_Public_Key.pem', 'wb')
+    with (open(publicFile, 'wb')
           as fw): fw.write(publicPem)
 
-    return keyLength
+
+def SymEncrypt(key: bytes, plaintext: bytes) -> bytes:
+    iv = os.urandom(16)
+    padder = padding.PKCS7(BLOCK_SIZE_BITS).padder()
+    padded = padder.update(plaintext) + padder.finalize()
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv),
+                    backend=default_backend())
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(padded) + encryptor.finalize()
+    return iv + ciphertext
 
 
-def RSAEncrypt(plainText):
+def SymDecrypt(key: bytes, cipherText: bytes) -> bytes:
+    iv = cipherText[:16]
+    ciphertext = cipherText[16:]
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv),
+                    backend=default_backend())
+    decryptor = cipher.decryptor()
+    padded = decryptor.update(ciphertext) + decryptor.finalize()
+    unpadder = padding.PKCS7(BLOCK_SIZE_BITS).unpadder()
+    return unpadder.update(padded) + unpadder.finalize()
 
+
+def RSAEncrypt(plainText: bytes) -> bytes:
     with open('../Client/Client_Public_Key.pem', "rb") as key_file:
         publicKey = serialization.load_pem_public_key(key_file.read())
 
@@ -68,7 +92,7 @@ def RSAEncrypt(plainText):
     return ciphertext
 
 
-def RSADecrypt(cipherText):
+def RSADecrypt(cipherText: bytes) -> bytes:
 
     with open('Server_Private_Key.pem', "rb") as key_file:
         private_key = serialization.load_pem_private_key(
@@ -82,13 +106,13 @@ def RSADecrypt(cipherText):
     return decryptedPlainText
 
 
-def CreateNonce():
+def GenerateNonce() -> str:
     return 'Server Nonce'
 
 
-def KeyExchange(serverSocket, firstNonce):
-    newNonce = CreateNonce()
-    nonceReply = firstNonce + "\t" + CreateNonce()
+def ServerSideKeyExchange(serverSocket, firstNonce: str) -> bytes:
+    newNonce = GenerateNonce()
+    nonceReply = firstNonce + "\t" + GenerateNonce()
 
     # Step 2, send first and second nonce
     encryptedReply = RSAEncrypt(nonceReply.encode())
@@ -116,7 +140,7 @@ def KeyExchange(serverSocket, firstNonce):
     return sessionKey
 
 
-def Login(sessionKey, username, password):
+def ServerSideLogin(sessionKey: bytes, username: str, password: str) -> str:
 
     badUsername = 'User name does not exist\n'
     badPassword = 'Incorrect password\n'
@@ -148,8 +172,7 @@ def Login(sessionKey, username, password):
     # Check password associated with username
     goodPassword = False
     if goodUsername:
-        goodPassword = (
-            bcrypt.checkpw(password))
+        goodPassword = (bcrypt.checkpw(password))
     print('password status: ', goodPassword)
 
     if not goodPassword: replyMessage = badPassword
@@ -172,14 +195,14 @@ def ConnectToClient():
     keyExchangeInfo = RSADecrypt(encryptedRequest).decode("ascii")
     clientNonce = keyExchangeInfo.split('\t')[1]
 
-    sessionKey = KeyExchange(serverSocket, clientNonce)
+    sessionKey = ServerSideKeyExchange(serverSocket, clientNonce)
 
     loginInfo = serverSocket.recv(1024)
     decryptedLoginInfo = RSADecrypt(loginInfo).decode("ascii")
     password = decryptedLoginInfo.split('\t')[0]
     username = decryptedLoginInfo.split('\t')[1]
 
-    loginStatus = Login(sessionKey, username, password)
+    loginStatus = ServerSideLogin(sessionKey, username, password)
 
     encryptedLoginStatus = RSAEncrypt(loginStatus.encode())
     serverSocket.send(encryptedLoginStatus)
