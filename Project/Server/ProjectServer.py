@@ -1,8 +1,8 @@
 from socket import *
 from Project import ExtraCode as EX
 
-myLocation = 'Test_Server'
-thatLocation = 'Test_Client'
+myLocation = 'Server'
+thatLocation = 'Client'
 
 badUsername = 'User name does not exist\n'
 badPassword = 'Incorrect password\n'
@@ -13,18 +13,18 @@ successMessage = 'Login Successful\n'
 def PutCredsInArray() -> list[list[str]]:
     # Read in creds from file into array
 
-    with open('../Server/BcryptCreds.txt', 'r') as credentialsFile:
+    with open('HashedCreds.txt', 'r') as credentialsFile:
         credentials = credentialsFile.read().split('\n')
-    creds = [['' for _ in range(2)] for _ in range(50)]
+    creds = [['' for _ in range(3)] for _ in range(50)]
     for i in range(50):
-        creds[i][0] = credentials[i].split(' ', 1)[0]
-        creds[i][1] = credentials[i].split(' ', 1)[1]
+        creds[i][0] = credentials[i].split(' ', 2)[0]
+        creds[i][1] = credentials[i].split(' ', 2)[1]
+        creds[i][2] = credentials[i].split(' ', 2)[2]
 
     return creds
 
 
-def CheckCreds(creds: list[list[str]],
-               username: str, password: str) -> [bool, bool]:
+def CheckCreds(creds: list[list[str]], username: str, password: str) -> [bool, bool]:
     
     # Find index of username, if it exists
     goodUsername = False
@@ -39,8 +39,7 @@ def CheckCreds(creds: list[list[str]],
 
     # Check password associated with username
     goodPassword = False
-    if goodUsername:
-        goodPassword = password.encode() == creds[usernameIndex][1].encode()
+    if goodUsername: goodPassword = password == creds[usernameIndex][1]
 
     return goodUsername, goodPassword
 
@@ -55,8 +54,7 @@ def ServerSideKeyExchange(serverSocket, firstNonce: str) -> bytes:
 
     # Step 3, receive back second nonce
     nonceResponse = serverSocket.recv(1024)
-    decryptedNonceResponse = (
-        EX.RSADecrypt(myLocation, nonceResponse).decode("ascii"))
+    decryptedNonceResponse = EX.RSADecrypt(myLocation, nonceResponse).decode("ascii")
     
     if decryptedNonceResponse != newNonce:
         message = 'Reply nonce does not match what was sent'
@@ -75,8 +73,7 @@ def ServerSideKeyExchange(serverSocket, firstNonce: str) -> bytes:
     return sessionKey
 
 
-def ServerSideLogin(serverSocket, 
-                    sessionKey: bytes, username: str, password: str) -> bool:
+def ServerSideLogin(serverSocket, sessionKey: bytes, username: str, password: str) -> bool:
     
     creds = PutCredsInArray()
     loginAttempts = 1
@@ -91,9 +88,8 @@ def ServerSideLogin(serverSocket,
         if not goodPassword: loginStatus = badPassword
         if not goodUsername: loginStatus = badUsername
         if goodUsername and goodPassword: return True
-        
-        encryptedReply = (
-            EX.RSAEncrypt(thatLocation, loginStatus.encode()))
+
+        encryptedReply = EX.RSAEncrypt(thatLocation, loginStatus.encode())
         serverSocket.send(encryptedReply)
 
         credsResponse = serverSocket.recv(1024)
@@ -101,10 +97,10 @@ def ServerSideLogin(serverSocket,
         newUsername = RSADecryptedCreds.split('\t')[0].decode("ascii")
         
         symEncryptedPassword = RSADecryptedCreds.split('\t')[1]
-        newPassword = EX.SymDecrypt(
-            sessionKey, symEncryptedPassword).decode('ascii')
+        newPassword = EX.SymDecrypt(sessionKey, symEncryptedPassword).decode('ascii')
 
         goodUsername, goodPassword = CheckCreds(creds, newUsername, newPassword)
+        loginAttempts += 1
         
     return False
         
@@ -120,23 +116,24 @@ def ConnectToClient():
 
     # Step 1, receive first nonce
     encryptedRequest = serverSocket.recv(1024)
-    keyExchangeInfo = (
-        EX.RSADecrypt(myLocation, encryptedRequest).decode("ascii"))
+    keyExchangeInfo = EX.RSADecrypt(myLocation, encryptedRequest).decode("ascii")
     clientNonce = keyExchangeInfo.split('\t')[1]
 
     sessionKey = ServerSideKeyExchange(serverSocket, clientNonce)
     username = keyExchangeInfo.split('\t')[0]
 
-    passwordMessage = serverSocket.recv(1024)
-    passwordSymDecrypted = EX.SymDecrypt(sessionKey, passwordMessage)
-    passwordRSADecrypted = (
-        EX.RSADecrypt(myLocation, passwordSymDecrypted).decode("ascii"))
+    encryptedCredsMessage = serverSocket.recv(1024)
 
-    if not ServerSideLogin(serverSocket, sessionKey,
-                           username, passwordRSADecrypted):
-        encryptedReply = EX.RSAEncrypt(thatLocation, tooManyAttempts.encode())
-        serverSocket.send(encryptedReply)
+    decryptedCreds = EX.SymDecrypt(sessionKey, encryptedCredsMessage).decode("ascii")
 
+    decryptedPassword = decryptedCreds.split('\t')[1]
+
+    loginReply = tooManyAttempts
+    if ServerSideLogin(serverSocket, sessionKey, username, decryptedPassword):
+        loginReply = successMessage
+
+    encryptedReply = EX.RSAEncrypt(thatLocation, loginReply.encode())
+    serverSocket.send(encryptedReply)
     serverSocket.close()
 
 

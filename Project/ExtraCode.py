@@ -5,7 +5,7 @@ import datetime
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives import padding as SymPadding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -15,7 +15,7 @@ from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.x509.verification import ClientVerifier
 
-BLOCK_SIZE_BITS = 256
+BLOCK_SIZE_BITS = 128
 
 
 def CreateBcryptHashFile() -> None:
@@ -26,13 +26,14 @@ def CreateBcryptHashFile() -> None:
     for i in range(100):
         loginInfo[int(i / 2)][i % 2] = loginFile[i]
 
-    with open('BcryptCreds.txt', 'w') as hashedFile:
+    with open('Server/HashedCreds.txt', 'w') as hashedFile:
         for myInfo in loginInfo:
             myPassword = myInfo[1]
-            myPasswordHashed = bcrypt.hashpw(bytes(myPassword, 'utf-8'),
-                                             bcrypt.gensalt())
+            mySalt = bcrypt.gensalt()
+            myPasswordHashed = bcrypt.hashpw(bytes(myPassword, 'utf-8'), mySalt)
             hashedFile.write(myInfo[0] + ' ')
-            hashedFile.write(str(myPasswordHashed) + '\n')
+            hashedFile.write(myPasswordHashed.decode('ascii') + ' ')
+            hashedFile.write(mySalt.decode('ascii') + '\n')
 
 
 def GenerateNonce(thisLocation) -> str:
@@ -96,7 +97,7 @@ def RSADecrypt(thisLocation: str, cipherText: bytes) -> bytes:
 
 def SymEncrypt(key: bytes, plaintext: bytes) -> bytes:
     iv = os.urandom(16)
-    padder = padding.PKCS7(BLOCK_SIZE_BITS).padder()
+    padder = SymPadding.PKCS7(BLOCK_SIZE_BITS).padder()
     padded = padder.update(plaintext) + padder.finalize()
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv),
                     backend=default_backend())
@@ -112,7 +113,7 @@ def SymDecrypt(key: bytes, cipherText: bytes) -> bytes:
                     backend=default_backend())
     decryptor = cipher.decryptor()
     padded = decryptor.update(ciphertext) + decryptor.finalize()
-    unpadder = padding.PKCS7(BLOCK_SIZE_BITS).unpadder()
+    unpadder = SymPadding.PKCS7(BLOCK_SIZE_BITS).unpadder()
     return unpadder.update(padded) + unpadder.finalize()
 
 
@@ -170,3 +171,7 @@ def GenerateCertificate():
 # TODO
 def ValidateCertificate():
     pass
+
+
+if __name__ == "__main__":
+    CreateBcryptHashFile()

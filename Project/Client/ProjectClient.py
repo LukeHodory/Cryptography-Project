@@ -3,7 +3,6 @@ from Project import ExtraCode
 import os
 import bcrypt
 
-
 """Secure Session Key Exchange Protocol and Diagram"""
 ##############################################################################
 #                                                                            #
@@ -14,7 +13,7 @@ import bcrypt
 #          +--------+                                    +--------+          #
 #                  >>-----E(PUB-Se, N2)------------------>>                  #
 #                  >>-----E(PUB-Se, Key))---------------->>                  #
-#                  >>-----E(PUB-Se, E(Key, Password-A))-->>                  #
+#                  >>-----E(Key, Password-A))------------>>                  #
 #                                                                            #
 ##############################################################################
 
@@ -35,17 +34,18 @@ import bcrypt
 # (7) Client sends back Nonce 2 as encrypted message
 # (8) Client encrypts session key using Client private key
 # (9) Client sends encrypted session key encrypted with server public key
-# (10) Client sends password encrypted with session key
+# (10) Client sends password encrypted with session key and server public key
 # (11) Server decrypts key and responds with encrypted message about login
 #    success
 # (12) Repeat (10) and (11) until username is found in list of server
 #    credentials and the corresponding password matches,
 #    or until 5 failed login attempts
 
-SESSION_KEY = os.urandom(128)
+SESSION_KEY = os.urandom(16)
+salt = "$2a$12$AAAAAAAAAAAAAACgpDEPGQ=="
 
-myLocation = 'Test_Client'
-thatLocation = 'Test_Server'
+myLocation = 'Client'
+thatLocation = 'Server'
 
 successMessage = 'Login Successful\n'
 disconnectMessage = 'too many login attempts\n'
@@ -53,7 +53,7 @@ disconnectMessage = 'too many login attempts\n'
 
 def ClientSideKeyExchange(clientSocket, username: str) -> bool:
     myNonce = ExtraCode.GenerateNonce(myLocation)
-    nonceMessage = username + "\t" + myNonce
+    nonceMessage = username + "\t" + ExtraCode.GenerateNonce(myLocation)
 
     # Step 1, send first nonce
     encryptedNonce = ExtraCode.RSAEncrypt(thatLocation, nonceMessage.encode())
@@ -61,8 +61,7 @@ def ClientSideKeyExchange(clientSocket, username: str) -> bool:
 
     # Step 2, receive first and second nonce
     nonceResponse = clientSocket.recv(1024)
-    decryptedNonceResponse = (
-        ExtraCode.RSADecrypt(myLocation, nonceResponse).decode("ascii"))
+    decryptedNonceResponse = ExtraCode.RSADecrypt(myLocation, nonceResponse).decode("ascii")
 
     firstNonce = decryptedNonceResponse.split('\t')[0]
     newNonce = decryptedNonceResponse.split('\t')[1]
@@ -88,24 +87,17 @@ def ClientSideKeyExchange(clientSocket, username: str) -> bool:
 def ClientSideLogin(clientSocket, username, password) -> [bool, str]:
 
     loginSuccess = False
+    mySalt = b'$2b$12$u5RUXmpxpjyDj1u/eFSaJ.'
+    passwordHashed = bcrypt.hashpw(password.encode(), mySalt)
 
-    # passwordHashed = (bcrypt.hashpw(bytes(password, 'utf-8')))
-    passwordHashed = bcrypt.hashpw(bytes(password, 'ascii'), bcrypt.gensalt())
+    loginCreds = username + '\t' + passwordHashed.decode('ascii')
 
     # Encrypt password with AES
-    SymEncryptedPassword = ExtraCode.SymEncrypt(SESSION_KEY, passwordHashed)
-
-    # Encrypt password with RSA
-    RSAEncryptedPassword = (
-        ExtraCode.RSAEncrypt(thatLocation, SymEncryptedPassword))
-
-    loginMessage = username + '\t' + RSAEncryptedPassword
-
-    clientSocket.send(loginMessage)
+    SymEncryptedCreds = ExtraCode.SymEncrypt(SESSION_KEY, loginCreds.encode())
+    clientSocket.send(SymEncryptedCreds)
 
     loginResponse = clientSocket.recv(1024)
-    decryptedLoginResponse = (
-        ExtraCode.RSADecrypt(myLocation, loginResponse).decode("ascii"))
+    decryptedLoginResponse = ExtraCode.RSADecrypt(myLocation, loginResponse).decode("ascii")
 
     if decryptedLoginResponse == successMessage: loginSuccess = True
 
@@ -125,18 +117,14 @@ def ConnectToServer():
         clientSocket.close()
         exit()
 
-    loginSuccess, loginStatus = False, ''
-
-    while loginStatus != 'disconnect' and loginStatus != 'success':
-        loginSuccess, loginStatus = (
-            ClientSideLogin(clientSocket, username, password))
-
+    while True:
+        loginSuccess, loginStatus = ClientSideLogin(clientSocket, username, password)
         print(loginStatus)
+        if loginSuccess: break
+        if loginStatus == disconnectMessage: break
 
         username = input('username: ')
         password = input('password: ')
-
-    if loginSuccess: print('Login Successful!')
 
     clientSocket.close()
 
