@@ -1,5 +1,5 @@
 from socket import *
-from Project import ExtraCode
+import Handshake
 import os
 import bcrypt
 
@@ -52,16 +52,16 @@ disconnectMessage = 'too many login attempts\n'
 
 
 def ClientSideKeyExchange(clientSocket, username: str) -> bool:
-    myNonce = ExtraCode.GenerateNonce(myLocation)
-    nonceMessage = username + "\t" + ExtraCode.GenerateNonce(myLocation)
+    myNonce = Handshake.GenerateNonce(myLocation)
+    nonceMessage = username + "\t" + Handshake.GenerateNonce(myLocation)
 
     # Step 1, send first nonce
-    encryptedNonce = ExtraCode.RSAEncrypt(thatLocation, nonceMessage.encode())
+    encryptedNonce = Handshake.RSAEncrypt(thatLocation, nonceMessage.encode())
     clientSocket.send(encryptedNonce)
 
     # Step 2, receive first and second nonce
     nonceResponse = clientSocket.recv(1024)
-    decryptedNonceResponse = ExtraCode.RSADecrypt(myLocation, nonceResponse).decode("ascii")
+    decryptedNonceResponse = Handshake.RSADecrypt(myLocation, nonceResponse).decode("ascii")
 
     firstNonce = decryptedNonceResponse.split('\t')[0]
     newNonce = decryptedNonceResponse.split('\t')[1]
@@ -72,19 +72,19 @@ def ClientSideKeyExchange(clientSocket, username: str) -> bool:
         exit()
 
     # Step 3, send back second nonce
-    encryptedReplyNonce = ExtraCode.RSAEncrypt(thatLocation, newNonce.encode())
+    encryptedReplyNonce = Handshake.RSAEncrypt(thatLocation, newNonce.encode())
     clientSocket.send(encryptedReplyNonce)
 
     clientSocket.recv(1024)
 
     # Step 4, send session key
-    keyShare = ExtraCode.RSAEncrypt(thatLocation, SESSION_KEY)
+    keyShare = Handshake.RSAEncrypt(thatLocation, SESSION_KEY)
     clientSocket.send(keyShare)
 
     return True
 
 
-def ClientSideLogin(clientSocket, username, password) -> [bool, str]:
+def ClientSideLogin(clientSocket, username, password) -> bool | str:
 
     loginSuccess = False
     mySalt = b'$2b$12$u5RUXmpxpjyDj1u/eFSaJ.'
@@ -93,11 +93,11 @@ def ClientSideLogin(clientSocket, username, password) -> [bool, str]:
     loginCreds = username + '\t' + passwordHashed.decode('ascii')
 
     # Encrypt password with AES
-    SymEncryptedCreds = ExtraCode.SymEncrypt(SESSION_KEY, loginCreds.encode())
+    SymEncryptedCreds = Handshake.SymEncrypt(SESSION_KEY, loginCreds.encode())
     clientSocket.send(SymEncryptedCreds)
 
     loginResponse = clientSocket.recv(1024)
-    decryptedLoginResponse = ExtraCode.RSADecrypt(myLocation, loginResponse).decode("ascii")
+    decryptedLoginResponse = Handshake.RSADecrypt(myLocation, loginResponse).decode("ascii")
 
     if decryptedLoginResponse == successMessage: loginSuccess = True
 

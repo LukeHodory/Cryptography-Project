@@ -1,5 +1,5 @@
 from socket import *
-from Project import ExtraCode as EX
+import Handshake
 
 myLocation = 'Server'
 thatLocation = 'Client'
@@ -24,7 +24,7 @@ def PutCredsInArray() -> list[list[str]]:
     return creds
 
 
-def CheckCreds(creds: list[list[str]], username: str, password: str) -> [bool, bool]:
+def CheckCreds(creds: list[list[str]], username: str, password: str) -> bool | bool:
     
     # Find index of username, if it exists
     goodUsername = False
@@ -45,16 +45,16 @@ def CheckCreds(creds: list[list[str]], username: str, password: str) -> [bool, b
 
 
 def ServerSideKeyExchange(serverSocket, firstNonce: str) -> bytes:
-    newNonce = EX.GenerateNonce(myLocation)
+    newNonce = Handshake.GenerateNonce(myLocation)
     nonceReply = firstNonce + "\t" + newNonce
 
     # Step 2, send first and second nonce
-    encryptedReply = EX.RSAEncrypt(thatLocation, nonceReply.encode())
+    encryptedReply = Handshake.RSAEncrypt(thatLocation, nonceReply.encode())
     serverSocket.send(encryptedReply)
 
     # Step 3, receive back second nonce
     nonceResponse = serverSocket.recv(1024)
-    decryptedNonceResponse = EX.RSADecrypt(myLocation, nonceResponse).decode("ascii")
+    decryptedNonceResponse = Handshake.RSADecrypt(myLocation, nonceResponse).decode("ascii")
     
     if decryptedNonceResponse != newNonce:
         message = 'Reply nonce does not match what was sent'
@@ -68,7 +68,7 @@ def ServerSideKeyExchange(serverSocket, firstNonce: str) -> bytes:
 
     # Step 4, receive session key
     encryptedKey = serverSocket.recv(1024)
-    sessionKey = EX.RSADecrypt(myLocation, encryptedKey)
+    sessionKey = Handshake.RSADecrypt(myLocation, encryptedKey)
 
     return sessionKey
 
@@ -89,15 +89,15 @@ def ServerSideLogin(serverSocket, sessionKey: bytes, username: str, password: st
         if not goodUsername: loginStatus = badUsername
         if goodUsername and goodPassword: return True
 
-        encryptedReply = EX.RSAEncrypt(thatLocation, loginStatus.encode())
+        encryptedReply = Handshake.RSAEncrypt(thatLocation, loginStatus.encode())
         serverSocket.send(encryptedReply)
 
         credsResponse = serverSocket.recv(1024)
-        RSADecryptedCreds = EX.RSADecrypt(myLocation, credsResponse)
+        RSADecryptedCreds = Handshake.RSADecrypt(myLocation, credsResponse)
         newUsername = RSADecryptedCreds.split('\t')[0].decode("ascii")
         
         symEncryptedPassword = RSADecryptedCreds.split('\t')[1]
-        newPassword = EX.SymDecrypt(sessionKey, symEncryptedPassword).decode('ascii')
+        newPassword = Handshake.SymDecrypt(sessionKey, symEncryptedPassword).decode('ascii')
 
         goodUsername, goodPassword = CheckCreds(creds, newUsername, newPassword)
         loginAttempts += 1
@@ -116,7 +116,7 @@ def ConnectToClient():
 
     # Step 1, receive first nonce
     encryptedRequest = serverSocket.recv(1024)
-    keyExchangeInfo = EX.RSADecrypt(myLocation, encryptedRequest).decode("ascii")
+    keyExchangeInfo = Handshake.RSADecrypt(myLocation, encryptedRequest).decode("ascii")
     clientNonce = keyExchangeInfo.split('\t')[1]
 
     sessionKey = ServerSideKeyExchange(serverSocket, clientNonce)
@@ -124,7 +124,7 @@ def ConnectToClient():
 
     encryptedCredsMessage = serverSocket.recv(1024)
 
-    decryptedCreds = EX.SymDecrypt(sessionKey, encryptedCredsMessage).decode("ascii")
+    decryptedCreds = Handshake.SymDecrypt(sessionKey, encryptedCredsMessage).decode("ascii")
 
     decryptedPassword = decryptedCreds.split('\t')[1]
 
@@ -132,7 +132,7 @@ def ConnectToClient():
     if ServerSideLogin(serverSocket, sessionKey, username, decryptedPassword):
         loginReply = successMessage
 
-    encryptedReply = EX.RSAEncrypt(thatLocation, loginReply.encode())
+    encryptedReply = Handshake.RSAEncrypt(thatLocation, loginReply.encode())
     serverSocket.send(encryptedReply)
     serverSocket.close()
 
