@@ -44,8 +44,8 @@ def GenerateRSAPair(thisLocation: str) -> None:
     # thisLocation = machine private key is for
 
     keyLength = 3072
-    privateFile = thisLocation + '_Private_Key.pem'
-    publicFile = thisLocation + '_Public_Key.pem'
+    privateFile = 'Text/' + thisLocation + '_Private_Key.pem'
+    publicFile = 'Text/' + thisLocation + '_Public_Key.pem'
 
     privateKey = rsa.generate_private_key(
         public_exponent=65537,
@@ -67,7 +67,7 @@ def GenerateRSAPair(thisLocation: str) -> None:
 
 
 def RSAEncrypt(thatLocation: str, plainText: bytes) -> bytes:
-    fileName = thatLocation + '_Public_Key.pem'
+    fileName = './Keys/' + thatLocation + '_Public_Key.pem'
 
     with open(fileName, "rb") as key_file:
         publicKey = serialization.load_pem_public_key(key_file.read())
@@ -81,7 +81,7 @@ def RSAEncrypt(thatLocation: str, plainText: bytes) -> bytes:
 
 
 def RSADecrypt(thisLocation: str, cipherText: bytes) -> bytes:
-    fileName = thisLocation + '_Private_Key.pem'
+    fileName = './Keys/' + thisLocation + '_Private_Key.pem'
 
     with open(fileName, "rb") as key_file:
         private_key = serialization.load_pem_private_key(

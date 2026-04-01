@@ -13,7 +13,7 @@ successMessage = 'Login Successful\n'
 def PutCredsInArray() -> list[list[str]]:
     # Read in creds from file into array
 
-    with open('HashedCreds.txt', 'r') as credentialsFile:
+    with open('./Text/HashedCreds.txt', 'r') as credentialsFile:
         credentials = credentialsFile.read().split('\n')
     creds = [['' for _ in range(3)] for _ in range(50)]
     for i in range(50):
